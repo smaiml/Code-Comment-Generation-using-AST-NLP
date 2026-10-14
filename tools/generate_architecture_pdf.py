@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "outputs" / "Existing_and_Proposed_Architecture.pdf"
+OUTPUT = ROOT / "outputs" / "Updated_Existing_and_Implemented_Architecture.pdf"
 PAGE_W, PAGE_H = 595, 842
 INK = (0.09, 0.14, 0.18)
 TEAL = (0.09, 0.42, 0.40)
@@ -133,105 +133,116 @@ class Page:
 
 def existing_page():
     page = Page()
-    page.header("Existing Architecture", "Implemented architecture evidenced in project documentation and source code.", 1)
+    page.header("Previously Existing Architecture", "Project pipeline before the security-gate enhancement.", 1)
     labels = [
-        ("Python source", "file / GUI", 77),
-        ("Parse + validate", "AST / checks", 91),
-        ("AST + context", "features / graph", 96),
-        ("Comment engines", "rules / ML / fusion", 113),
-        ("Attach", "annotated output", 82),
+        ("Python source", "CLI / GUI", 72),
+        ("Parse + validate", "AST / rules", 91),
+        ("AST + context", "features / graph", 100),
+        ("Comment engines", "rules / ML / fusion", 110),
+        ("Attach", "annotated source", 74),
     ]
-    gap, x, y, h = 12, 44, 693, 46
-    starts = []
+    gap, x, y, h = 9, 44, 694, 45
     for i, (title, detail, width) in enumerate(labels):
-        starts.append(x)
-        page.box(x, y, width, h, title, detail, PALE if i in (2, 3) else BLUE, 7.6)
+        page.box(x, y, width, h, title, detail, PALE if i in (2, 3) else BLUE, 7.4)
         if i:
-            page.arrow(starts[i - 1] + labels[i - 1][2] + 1, y + h / 2, x - 1, y + h / 2)
+            page.arrow(x - gap + 1, y + h / 2, x - 1, y + h / 2)
         x += width + gap
 
     lower = [
-        ("IR + CFG", "three-address IR / blocks", 112),
+        ("IR + CFG", "three-address IR", 103),
         ("Data-flow", "reaching defs / live vars", 112),
-        ("Patterns", "quality findings", 112),
-        ("Security scan", "static anti-pattern checks", 121),
+        ("Patterns", "quality findings", 103),
+        ("Security scan", "anti-pattern report", 119),
     ]
-    x, y2, h2, gap2 = 48, 620, 43, 11
-    lower_starts = []
+    x, y2, h2, gap2 = 52, 610, 43, 13
+    lower_centers = []
     for i, (title, detail, width) in enumerate(lower):
-        lower_starts.append(x)
         page.box(x, y2, width, h2, title, detail, GOLD if i == 3 else BLUE, 7.8)
-        if 0 < i < 3:
-            page.arrow(lower_starts[i - 1] + lower[i - 1][2] + 1, y2 + h2 / 2, x - 1, y2 + h2 / 2)
+        lower_centers.append(x + width / 2)
+        if i:
+            page.arrow(x - gap2 + 1, y2 + h2 / 2, x - 1, y2 + h2 / 2)
         x += width + gap2
-    page.arrow(starts[2] + labels[2][2] / 2, y - 1, starts[2] + labels[2][2] / 2, y2 + h2 + 2, dash=True)
-    page.text(50, 603, "Pipeline logs and PyQt6 workspaces display generation, analysis, and security results.", 7, color=MUTED)
+    page.arrow(44 + sum(item[2] for item in labels[:4]) + 3 * gap - 5, y - 1,
+               lower_centers[0], y2 + h2 + 2, dash=True)
+    page.text(52, 592, "Security analysis existed, but it ran after comment generation and attachment.", 7.2, color=MUTED)
 
-    page.text(44, 580, "Current implementation", 12, True, TEAL)
+    page.text(44, 566, "Previously implemented modules", 12, True, TEAL)
     paragraph = (
-        "The application is a sequential Python source-analysis pipeline. The CLI and PyQt6 GUI pass source code to the parser and validator; AST features and context then feed the selected comment engine. Generated comments are attached to source. The pipeline also builds an intermediate representation, runs control-flow and data-flow analysis, detects code patterns, and produces a security report."
+        "The original system already parsed and validated Python, extracted AST and context features, generated comments using rule-based, ML, or neurosymbolic modes, attached comments, and ran IR/CFG/DFA/pattern analysis. It also had a static security analyzer and GUI security report. Before the recent changes, the pipeline did not abort on a security finding before generating comments."
     )
-    page.wrapped(44, 563, paragraph, max_chars=111, size=8.1, leading=11)
+    page.wrapped(44, 549, paragraph, max_chars=111, size=8.0, leading=10.8)
 
     rows = [
-        ("Input and front end", "main.py, parser_module.py, validator.py: CLI orchestration, source parsing, AST checks. gui/: desktop interface and workspaces."),
-        ("Program understanding", "ast_extractor.py, ast_body_extractor.py, context_analyzer.py: AST features, function details, complexity, variables, and call graph."),
-        ("Comment generation", "comment_generator.py and ml/: rule-based and T5 AST+NLP generation. neurosymbolic/: confidence-gated ML, symbolic fallback, consistency checks."),
-        ("Static analysis", "ir/ and analysis/: intermediate representation, CFG, reaching-definitions/live-variable DFA, and pattern findings."),
-        ("Security and reporting", "security_analyzer.py: AST/context-based anti-pattern scan and remediation report. logger.py and GUI workspaces present results."),
+        ("Front end", "main.py, parser_module.py, validator.py, gui/: CLI/GUI input, parsing, validation, and display."),
+        ("Program analysis", "ast_extractor.py, context_analyzer.py, ir/, analysis/: AST/context, IR, CFG, DFA, and quality patterns."),
+        ("Comment engines", "comment_generator.py, ml/, neurosymbolic/: rule-based, T5 AST+NLP, and confidence-gated fusion."),
+        ("Existing security", "security_analyzer.py and security GUI: pre-existing static anti-pattern findings and remediation display."),
     ]
-    end = page.table(44, 506, [126, 381], ["Layer", "Implemented modules / responsibility"], rows, 7.2, 9.1, 5)
-    page.text(44, end - 14, "Security is already implemented and surfaced in CLI/GUI results. It is static, pattern-based analysis, not a complete security audit.", 7.2, color=MUTED)
+    end = page.table(44, 485, [117, 390], ["Area", "Already in the project before this enhancement"], rows, 7.0, 8.8, 4)
+    page.text(44, end - 13, "The modules above are existing project work; they are not claimed as newly implemented here.", 7.0, color=MUTED)
     return page
 
 
-def proposed_page():
+def implementation_page():
     page = Page()
-    page.header("Proposed Architecture", "Add coordinated, bounded agents across existing modules with explicit security controls.", 2)
-    page.box(242, 719, 111, 31, "User: CLI or GUI", "source + requested task", BLUE, 8)
-    page.arrow(297, 718, 297, 703)
-    page.box(224, 667, 147, 35, "Agent Coordinator", "plan / route / shared run state", PALE, 9)
+    page.header("Updated Implemented Architecture", "Actual flow after adding AST malware scanning and fail-closed enforcement.", 2)
 
-    agents = [
-        ("AST / Context", "parser, extractor, context", BLUE),
-        ("Security", "scanner, security policy", GOLD),
-        ("Generation", "rules, T5, neurosymbolic", PALE),
-        ("Static Analysis", "IR, CFG, DFA, patterns", BLUE),
+    first_row = [
+        ("Python source", "CLI / GUI", 72),
+        ("Parse + validate", "AST / rules", 91),
+        ("AST + context", "features / graph", 100),
+        ("Security scan", "AST indicators + score", 132),
     ]
-    agent_w, gap, x, agent_y, agent_h = 120, 9, 44, 595, 43
-    centers = []
-    for title, detail, fill in agents:
-        page.box(x, agent_y, agent_w, agent_h, title, detail, fill, 7.8)
-        centers.append(x + agent_w / 2)
-        page.arrow(297, 666, x + agent_w / 2, agent_y + agent_h + 2, dash=True)
-        x += agent_w + gap
-    page.box(207, 532, 180, 39, "Security + Validation Gate", "evidence / syntax / safe output / approval", GOLD, 8.5)
-    for center in centers:
-        page.arrow(center, agent_y - 1, 297, 573, dash=True)
-    page.text(55, 515, "Approved results return to comment attachment, reports, logs, and the GUI.", 7, color=MUTED)
+    x, y, gap, h = 44, 699, 13, 47
+    security_center = 0
+    for i, (title, detail, width) in enumerate(first_row):
+        page.box(x, y, width, h, title, detail, GOLD if i == 3 else BLUE, 7.7)
+        if i:
+            page.arrow(x - gap + 1, y + h / 2, x - 1, y + h / 2)
+        if i == 3:
+            security_center = x + width / 2
+        x += width + gap
 
-    page.text(44, 490, "Proposed agentic operating model", 12, True, TEAL)
+    page.arrow(security_center, y - 1, security_center, 637)
+    gate_x, gate_y, gate_w, gate_h = 190, 591, 212, 44
+    page.box(gate_x, gate_y, gate_w, gate_h, "Security Enforcement Gate",
+             "critical finding OR module safety score < 80", GOLD, 8.4)
+    page.arrow(gate_x + gate_w, gate_y + gate_h / 2, 442, gate_y + gate_h / 2)
+    page.box(442, 591, 109, 44, "BLOCK", "SecurityError\nJSON findings", GOLD, 8)
+    page.arrow(gate_x + gate_w / 2, gate_y - 1, gate_x + gate_w / 2, 558)
+
+    second_row = [
+        ("Comment engines", "rules / ML / fusion", 132),
+        ("Attach", "annotated source", 112),
+        ("IR + analysis", "CFG / DFA / patterns", 147),
+    ]
+    x, y2, gap2, h2 = 62, 507, 23, 46
+    for i, (title, detail, width) in enumerate(second_row):
+        page.box(x, y2, width, h2, title, detail, PALE if i == 0 else BLUE, 7.8)
+        if i:
+            page.arrow(x - gap2 + 1, y2 + h2 / 2, x - 1, y2 + h2 / 2)
+        x += width + gap2
+    page.arrow(gate_x + gate_w / 2, 557, 128, y2 + h2 + 2)
+    page.text(55, 486, "Accepted runs continue to normal generation and analysis; rejected runs never reach comment processing.", 7.0, color=MUTED)
+
+    page.text(44, 457, "What changed in this implementation", 12, True, TEAL)
     paragraph = (
-        "A coordinator receives a user task, creates a bounded plan, and invokes specialist agents through allow-listed project tools. Agents reuse the current parser, analyzers, generation engines, and report builders. Results and source evidence are collected in shared run state, then pass security and validation gates before comments or files are changed. Decisions are logged for review."
+        "The security analyzer now inspects Python AST calls and assignments for dynamic code execution, shell/system commands, unsafe deserialization, hardcoded credentials/tokens, suspicious network IP endpoints, and combined network/process behavior. It calculates a 0-100 module score. main.py invokes the centralized enforcement gate immediately after AST/context analysis and before comment generation. Rejected CLI runs print a detailed findings report and exit."
     )
-    page.wrapped(44, 473, paragraph, max_chars=111, size=8.1, leading=11)
+    page.wrapped(44, 440, paragraph, max_chars=111, size=7.8, leading=10.2)
 
     rows = [
-        ("Coordinator", "Plan tasks, route work, track state, handle failures, and produce a traceable run summary.", "Bounded plan; no unrestricted shell or network."),
-        ("AST / context agent", "Call parser, validator, feature extraction, and context analysis; return structured evidence.", "Read-only source access."),
-        ("Security agent", "Run current scanner, prioritize findings, recommend fixes; later add dependency/config checks.", "No automatic fix without validation and approval."),
-        ("Generation agent", "Select rule, ML, or neurosymbolic engine; draft comments from verified AST facts.", "Sanitize output; never execute generated code."),
-        ("Static analysis agent", "Use IR, CFG, DFA, and pattern detection; summarize quality findings.", "Structured tools with time/resource limits."),
-        ("Validation / review gate", "Check syntax, placement, consistency, security, and requested scope before export.", "Approval for source changes; auditable logs."),
+        ("security_analyzer.py", "Expanded AST indicators; severity/risk scoring; SecurityError and centralized 80-point/critical-finding gate."),
+        ("main.py", "Runs security checks before comment generation; aborts on failure and prints structured findings; supports direct script execution."),
+        ("Not implemented", "No agent coordinator or specialist-agent orchestration was added. Security analysis remains static and pattern-based."),
     ]
-    end = page.table(44, 418, [112, 219, 176], ["Proposed agent", "Reuse / responsibility", "Control"], rows, 6.8, 8.4, 4)
-    page.text(44, end - 13, "Agent planning/orchestration is proposed, not currently implemented. Existing security, ML, and neurosymbolic modules are implemented capabilities.", 7, color=MUTED)
+    page.table(44, 380, [130, 377], ["Changed area", "Implemented behavior / boundary"], rows, 6.8, 8.5, 4)
     return page
 
 
 def build_pdf():
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    pages = [existing_page(), proposed_page()]
+    pages = [existing_page(), implementation_page()]
     objects = [None] * (4 + 2 * len(pages))
     objects[0] = b"<< /Type /Catalog /Pages 2 0 R >>"
     page_refs = [f"{5 + i * 2} 0 R" for i in range(len(pages))]

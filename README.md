@@ -49,6 +49,18 @@ python3 -m src.main tests/inputs/complex_sample.py --ml
 
 `--ml` is strict AST+NLP mode. If no trained model exists, execution fails with a clear train-first message.
 
+### Optional LLM docstring review
+
+Add `--agent-review` to ask an OpenAI-compatible chat model to review generated docstring summaries against their function or class source. The agent can revise only the one-line summary; AST-generated Args, Returns, and Raises sections are preserved. The GUI has the matching **LLM review** checkbox.
+
+By default, the reviewer uses Ollama at `http://localhost:11434/v1` with model `llama3.1`:
+
+```bash
+python -m src.main tests/inputs/complex_sample.py --agent-review
+```
+
+Configure a different OpenAI-compatible service with `COMMENT_AGENT_BASE_URL`, `COMMENT_AGENT_MODEL`, and, when required, `COMMENT_AGENT_API_KEY`. The reviewer sends each generated docstring's source snippet to that endpoint; it is opt-in and is not called during ordinary runs.
+
 Recommended medium-quality run for RTX 4050:
 
 ```bash

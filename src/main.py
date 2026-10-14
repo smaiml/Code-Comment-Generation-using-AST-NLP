@@ -44,6 +44,7 @@ from .logger import PipelineLogger
 from .ir import build_ir, pretty_print_ir, serialize_ir
 from .analysis import build_cfg, run_dfa, detect_patterns
 from .security_analyzer import run_security_analysis, enforce_security_gate, SecurityError, SecurityReport
+from .llm_review_agent import review_generated_comments
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -71,6 +72,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Use AST+NLP ML-based comment generation")
     p.add_argument("--neurosymbolic", action="store_true",
                    help="Use neurosymbolic (confidence-gated ML + symbolic) generation")
+    p.add_argument("--agent-review", action="store_true",
+                   help="Review generated docstring summaries with a configured LLM")
     p.add_argument("--train", action="store_true",
                    help="Train/retrain ML models and save reports, then exit")
     p.add_argument("--epochs", type=int, default=4,
@@ -94,7 +97,8 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def run_pipeline(filepath: str, logger: PipelineLogger, ast_model=None, strict_ml: bool = False, engine: str = "rule_based"):
+def run_pipeline(filepath: str, logger: PipelineLogger, ast_model=None, strict_ml: bool = False,
+                 engine: str = "rule_based", agent_review: bool = False):
     """
     Execute the full pipeline (Week 7–8 stages + Week 9 ML generation).
 
@@ -104,6 +108,7 @@ def run_pipeline(filepath: str, logger: PipelineLogger, ast_model=None, strict_m
         ast_model:      Optional ASTCommentModel for ML-based generation.
         strict_ml:      Require AST+NLP ML path when True (no rule fallback).
         engine:         One of "rule_based", "ml", "neurosymbolic".
+        agent_review:   Review generated docstring summaries with an optional LLM.
 
     Returns:
         (annotated_source, comments, module_features, context_graph,
@@ -187,6 +192,14 @@ def run_pipeline(filepath: str, logger: PipelineLogger, ast_model=None, strict_m
         "engine": gen_engine,
     })
     logger.set_comments_generated(len(comments))
+
+    if agent_review:
+        logger.begin_stage("llm_review")
+        comments = review_generated_comments(comments, source_code)
+        logger.end_stage(summary={
+            "reviewed_docstrings": sum(c.kind == "docstring" for c in comments),
+            "model": os.getenv("COMMENT_AGENT_MODEL", "llama3.1"),
+        })
 
     # ── Stage 6: Attach Comments ─────────────────────────────────────
     logger.begin_stage("attach")
@@ -307,7 +320,9 @@ def main():
 
     try:
         annotated, comments, mf, cg, attach_result, ir_module, analysis_report, security_report = \
-            run_pipeline(filepath, logger, ast_model=ast_model, strict_ml=args.ml or args.neurosymbolic, engine=engine)
+            run_pipeline(filepath, logger, ast_model=ast_model,
+                         strict_ml=args.ml or args.neurosymbolic, engine=engine,
+                         agent_review=args.agent_review)
     except SecurityError as e:
         print(f"\n{e}")
         print("Security findings report:")

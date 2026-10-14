@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                             QPushButton, QSplitter, QTextEdit, QLineEdit, QRadioButton,
+                             QPushButton, QSplitter, QTextEdit, QLineEdit, QRadioButton, QCheckBox,
                              QFileDialog, QButtonGroup, QMessageBox, QProgressBar,
                              QGraphicsOpacityEffect)
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QTimer, QPropertyAnimation
@@ -22,11 +22,12 @@ class GeneratorWorker(QThread):
     finished = pyqtSignal(str, str, object)
     status = pyqtSignal(str)
 
-    def __init__(self, code_text, engine, output_dir):
+    def __init__(self, code_text, engine, output_dir, agent_review=False):
         super().__init__()
         self.code_text = code_text
         self.engine = engine
         self.output_dir = output_dir
+        self.agent_review = agent_review
 
     def run(self):
         try:
@@ -55,7 +56,7 @@ class GeneratorWorker(QThread):
             annotated, comments, mf, cg, attach_result, ir_module, analysis_report, security_report = \
                 run_pipeline(tmp_in, logger, ast_model=ast_model,
                              strict_ml=(self.engine in ("ml", "neurosymbolic")),
-                             engine=self.engine)
+                             engine=self.engine, agent_review=self.agent_review)
 
             out_file = os.path.join(self.output_dir, "gui_annotated.py")
             with open(out_file, 'w', encoding='utf-8') as f:
@@ -122,6 +123,12 @@ class GeneratorWorkspace(QWidget):
         engine_layout.addWidget(self.btn_rule)
         engine_layout.addWidget(self.btn_neuro)
         engine_layout.addWidget(self.btn_ml)
+
+        self.agent_review_checkbox = QCheckBox("LLM review")
+        self.agent_review_checkbox.setToolTip(
+            "Send generated docstring summaries and their source snippets to the configured LLM"
+        )
+        engine_layout.addWidget(self.agent_review_checkbox)
 
         header_layout.addWidget(engine_group)
         header_layout.addStretch()
@@ -243,7 +250,10 @@ class GeneratorWorkspace(QWidget):
 
         self.oh_title.setText("Annotated Output \u2014 Generating...")
 
-        self.worker = GeneratorWorker(code, engine, self.out_dir_input.text().strip())
+        self.worker = GeneratorWorker(
+            code, engine, self.out_dir_input.text().strip(),
+            agent_review=self.agent_review_checkbox.isChecked(),
+        )
         self.worker.status.connect(self._on_worker_status)
         self.worker.finished.connect(self.on_generation_finished)
         self.worker.start()
