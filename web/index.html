@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0f19">
+  <title>Code Comment Generator — Live Pipeline Visualizer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --canvas: #0b0f19;
+      --surface: #111827;
+      --surface-raised: #172033;
+      --surface-hover: #1d293b;
+      --border: #293448;
+      --border-subtle: #202b3d;
+      --text: #e6edf3;
+      --text-muted: #8b9aaa;
+      --text-dim: #647384;
+      --green: #10b981;
+      --green-bright: #34d399;
+      --green-soft: rgba(16, 185, 129, 0.11);
+      --green-line: rgba(16, 185, 129, 0.32);
+      --blue: #58a6ff;
+      --cyan: #56d4dd;
+      --purple: #c59bff;
+      --mono: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 360px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 50% -23%, rgba(56, 106, 145, .15), transparent 49%),
+        var(--canvas);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, select { font: inherit; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 3px;
+    }
+
+    .app-shell { width: min(1540px, 100%); margin: 0 auto; padding: 27px 38px 23px; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 34px;
+      margin-bottom: 30px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; color: var(--text); font-weight: 650; letter-spacing: -.025em; }
+    .brand-mark {
+      display: grid;
+      width: 31px;
+      height: 31px;
+      place-items: center;
+      border: 1px solid rgba(88, 166, 255, .33);
+      border-radius: 9px;
+      background: rgba(88, 166, 255, .09);
+      color: var(--blue);
+    }
+    .brand-mark svg { width: 18px; height: 18px; }
+    .brand-name { font-size: 14px; }
+    .brand-divider { width: 1px; height: 18px; margin: 0 2px; background: var(--border); }
+    .brand-subtitle { color: var(--text-muted); font-size: 12px; font-weight: 450; letter-spacing: 0; }
+
+    .topbar-right { display: flex; align-items: center; gap: 15px; color: var(--text-muted); font-size: 11px; }
+    .local-chip, .version-chip { display: inline-flex; align-items: center; gap: 7px; }
+    .local-chip { color: #a7b5c3; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px rgba(16, 185, 129, .42); }
+    .version-chip { padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px; color: #a0adba; font-family: var(--mono); font-size: 10px; }
+
+    .hero {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 11px;
+      color: var(--green-bright);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .eyebrow-line { width: 17px; height: 1px; background: var(--green); }
+    h1 { margin: 0; color: #eff5fb; font-size: clamp(24px, 3vw, 33px); font-weight: 650; letter-spacing: -.055em; line-height: 1.22; }
+    .hero-description { margin: 9px 0 0; color: var(--text-muted); font-size: 13px; letter-spacing: -.01em; }
+    .hero-description code { color: #b6c8da; font-family: var(--mono); font-size: 11px; }
+
+    .presentation-chip {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 2px;
+      padding: 8px 11px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: rgba(21, 29, 39, .75);
+      color: #a7b5c3;
+      font-size: 11px;
+    }
+    .presentation-chip svg { width: 14px; height: 14px; color: var(--cyan); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1.27fr 1.05fr 1.2fr .9fr;
+      gap: 1px;
+      overflow: hidden;
+      margin-bottom: 23px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--border);
+    }
+    .metric {
+      display: flex;
+      min-width: 0;
+      min-height: 64px;
+      align-items: center;
+      gap: 11px;
+      padding: 12px 15px;
+      background: linear-gradient(110deg, #121b2c, #111827);
+    }
+    .metric-icon {
+      display: grid;
+      flex: 0 0 auto;
+      width: 29px;
+      height: 29px;
+      place-items: center;
+      border-radius: 7px;
+    }
+    .metric-icon svg { width: 15px; height: 15px; }
+    .metric-icon.green { background: rgba(16, 185, 129, .1); color: var(--green-bright); }
+    .metric-icon.blue { background: rgba(88, 166, 255, .1); color: var(--blue); }
+    .metric-icon.cyan { background: rgba(86, 212, 221, .1); color: var(--cyan); }
+    .metric-icon.purple { background: rgba(197, 155, 255, .1); color: var(--purple); }
+    .metric-copy { min-width: 0; }
+    .metric-label { overflow: hidden; margin-bottom: 4px; color: var(--text-dim); font-size: 9px; font-weight: 600; letter-spacing: .075em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .metric-value { overflow: hidden; color: #dce5ee; font-size: 11px; font-weight: 560; letter-spacing: -.015em; text-overflow: ellipsis; white-space: nowrap; }
+    .metric-value .success-text { color: var(--green-bright); }
+
+    .workspace-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 12px;
+    }
+    .workspace-heading { display: flex; align-items: center; gap: 9px; }
+    .workspace-heading h2 { margin: 0; color: #d9e2ec; font-size: 13px; font-weight: 620; letter-spacing: -.015em; }
+    .file-indicator { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-family: var(--mono); font-size: 10px; }
+    .file-indicator svg { width: 13px; height: 13px; color: #8aa8c3; }
+    .toolbar-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      position: absolute;
+      top: 50%;
+      right: 11px;
+      width: 7px;
+      height: 7px;
+      border-right: 1.5px solid #8797a8;
+      border-bottom: 1.5px solid #8797a8;
+      content: "";
+      pointer-events: none;
+      transform: translateY(-70%) rotate(45deg);
+    }
+    select {
+      width: 187px;
+      height: 34px;
+      appearance: none;
+      padding: 0 31px 0 11px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #111827;
+      color: #ced9e4;
+      cursor: pointer;
+      font-size: 11px;
+    }
+    select:hover { border-color: #46596c; }
+    select option { background: #111827; color: var(--text); }
+    .action-button {
+      display: inline-flex;
+      min-height: 34px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 0 11px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #111827;
+      color: #c6d1dd;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 560;
+      transition: background .16s ease, border-color .16s ease, transform .16s ease;
+      white-space: nowrap;
+    }
+    .action-button:hover:not(:disabled) { border-color: #53677b; background: var(--surface-hover); }
+    .action-button:active:not(:disabled) { transform: translateY(1px); }
+    .action-button svg { width: 14px; height: 14px; }
+    .action-button.primary {
+      border-color: #059669;
+      background: linear-gradient(180deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 1px 0 rgba(255,255,255,.07) inset, 0 0 18px rgba(16, 185, 129, .16);
+    }
+    .action-button.primary:hover:not(:disabled) { border-color: #34d399; background: linear-gradient(180deg, #34d399, #10b981); }
+    .action-button:disabled { opacity: .63; cursor: wait; }
+    .toggle-button[aria-pressed="true"] { border-color: rgba(16,185,129,.48); background: rgba(16,185,129,.1); color: #8be4c2; }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 13px;
+      align-items: stretch;
+    }
+    .editor-card {
+      display: flex;
+      min-width: 0;
+      min-height: 478px;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #2a3542;
+      border-radius: 12px;
+      background: #0b0f19;
+      box-shadow: 0 8px 26px rgba(0,0,0,.13);
+    }
+    .editor-card.output-card { border-color: rgba(16, 185, 129, .28); }
+    .editor-top {
+      display: flex;
+      min-height: 49px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, #172033, #111827);
+    }
+    .editor-title-group { display: flex; min-width: 0; align-items: center; gap: 9px; }
+    .editor-file-icon { display: grid; width: 23px; height: 23px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(88,166,255,.18); border-radius: 6px; background: rgba(88,166,255,.08); color: var(--blue); }
+    .output-card .editor-file-icon { border-color: rgba(16,185,129,.2); background: rgba(16,185,129,.09); color: var(--green-bright); }
+    .editor-file-icon svg { width: 13px; height: 13px; }
+    .editor-heading { overflow: hidden; color: #d2dce7; font-size: 11px; font-weight: 620; text-overflow: ellipsis; white-space: nowrap; }
+    .editor-path { margin-top: 3px; color: #738294; font-family: var(--mono); font-size: 9px; }
+    .editor-meta { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 7px; color: #748395; font-family: var(--mono); font-size: 9px; }
+    .meta-dot { width: 5px; height: 5px; border-radius: 50%; background: #758497; }
+    .output-card .meta-dot { background: var(--green); }
+    .language-badge { padding: 4px 6px; border: 1px solid #2c3948; border-radius: 4px; background: #111827; color: #94a5b7; font-size: 9px; }
+    .output-card .language-badge { border-color: rgba(16,185,129,.26); color: #9acda2; }
+    .editor-body { position: relative; display: flex; min-height: 0; flex: 1; background: #0b0f19; }
+    .source-gutter, .output-gutter {
+      flex: 0 0 49px;
+      padding: 15px 11px 18px 0;
+      border-right: 1px solid rgba(38, 49, 62, .68);
+      color: #566473;
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: right;
+      user-select: none;
+    }
+    .source-gutter { overflow: hidden; }
+    .source-gutter span, .output-gutter span { display: block; min-height: 1.6em; }
+    .source-scroll {
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+    #source-code {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 427px;
+      padding: 15px 18px 18px 13px;
+      overflow: auto;
+      border: 0;
+      border-radius: 0;
+      outline: 0;
+      background: transparent;
+      color: #cfdae6;
+      caret-color: var(--green-bright);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+      tab-size: 4;
+      white-space: pre;
+      overflow-wrap: normal;
+      -webkit-font-smoothing: auto;
+    }
+    #source-code:focus-visible { outline: none; }
+    #source-code::selection { background: rgba(56, 139, 253, .31); }
+
+    .output-scroll {
+      display: flex;
+      min-width: 0;
+      min-height: 427px;
+      flex: 1;
+      overflow: auto;
+      scrollbar-color: #39475e #111827;
+      scrollbar-width: thin;
+    }
+    .output-gutter { position: sticky; left: 0; align-self: stretch; background: #0b0f19; }
+    .output-lines { min-width: max-content; flex: 1; padding: 15px 16px 18px 0; }
+    .code-line {
+      display: block;
+      min-height: 1.6em;
+      padding-left: 13px;
+      padding-right: 12px;
+      color: #cad5e1;
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre;
+    }
+    .code-line.added-line {
+      border-left: 2px solid rgba(16, 185, 129, .88);
+      background: linear-gradient(90deg, rgba(16,185,129,.17), rgba(16,185,129,.08) 72%, rgba(16,185,129,.025));
+      color: #8be4c2;
+      box-shadow: 2px 0 16px rgba(16,185,129,.1);
+    }
+    .token-keyword { color: #ff7b72; }
+    .token-builtin { color: #d2a8ff; }
+    .token-string { color: #a5d6ff; }
+    .token-number { color: #79c0ff; }
+    .token-comment { color: #8b949e; font-style: italic; }
+    .added-line .token-string, .added-line .token-comment { color: #8be4c2; }
+    .output-empty { padding: 22px 18px; color: var(--text-muted); font-size: 12px; }
+    .output-empty code { color: #becddb; font-family: var(--mono); font-size: 10px; }
+
+    .editor-footer {
+      display: flex;
+      min-height: 32px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 12px;
+      border-top: 1px solid var(--border-subtle);
+      background: #111827;
+      color: #6e7e8f;
+      font-family: var(--mono);
+      font-size: 9px;
+    }
+    .editor-footer-left { display: inline-flex; align-items: center; gap: 7px; }
+    .footer-status-dot { width: 5px; height: 5px; border-radius: 50%; background: #6d7f91; }
+    .output-card .footer-status-dot { background: var(--green); box-shadow: 0 0 8px rgba(16,185,129,.42); }
+    .footer-detail { color: #8292a3; }
+
+    .pipeline-panel {
+      margin-top: 13px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #111827;
+    }
+    .pipeline-header {
+      display: flex;
+      min-height: 39px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 13px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: #172033;
+    }
+    .pipeline-title { display: inline-flex; align-items: center; gap: 8px; color: #c8d3df; font-size: 10px; font-weight: 600; letter-spacing: .025em; }
+    .pipeline-title svg { width: 14px; height: 14px; color: var(--cyan); }
+    .pipeline-state { display: inline-flex; align-items: center; gap: 6px; color: #8292a3; font-family: var(--mono); font-size: 9px; }
+    .pipeline-state .state-dot { width: 6px; height: 6px; border-radius: 50%; background: #647385; }
+    .pipeline-state.running { color: #9ed5ff; }
+    .pipeline-state.running .state-dot { background: var(--blue); box-shadow: 0 0 9px rgba(88,166,255,.6); animation: pulse 1s infinite ease-in-out; }
+    .pipeline-state.complete { color: var(--green-bright); }
+    .pipeline-state.complete .state-dot { background: var(--green); }
+    .terminal-content { padding: 10px 13px 12px; }
+    .terminal-log { display: flex; min-height: 31px; align-items: center; gap: 10px; }
+    .terminal-prompt { color: #5f7388; font-family: var(--mono); font-size: 10px; }
+    .terminal-message { overflow: hidden; color: #aab8c6; font-family: var(--mono); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .terminal-message .terminal-success { color: var(--green-bright); }
+    .terminal-message .terminal-blue { color: #86c3ff; }
+    .terminal-time { flex: 0 0 auto; margin-left: auto; color: #607184; font-family: var(--mono); font-size: 9px; }
+    .progress-track { height: 3px; overflow: hidden; margin-top: 8px; border-radius: 999px; background: #202b3d; }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #059669, #34d399 62%, #58a6ff); transition: width .45s cubic-bezier(.22,1,.36,1); }
+    .pipeline-state.running ~ .terminal-content .progress-fill { box-shadow: 0 0 9px rgba(16,185,129,.36); }
+
+    .bottom-note {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 17px;
+      color: #687889;
+      font-size: 10px;
+    }
+    .note-left { display: inline-flex; align-items: center; gap: 7px; }
+    .note-left svg { width: 13px; height: 13px; color: #7e91a4; }
+    .note-link { color: #91a2b3; }
+    .bottom-note code { color: #91a2b3; font-family: var(--mono); font-size: 9px; }
+    .toast {
+      position: fixed;
+      z-index: 5;
+      right: 23px;
+      bottom: 21px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 14px;
+      border: 1px solid rgba(16,185,129,.35);
+      border-radius: 8px;
+      background: #10251f;
+      box-shadow: 0 8px 30px rgba(0,0,0,.3);
+      color: #8be4c2;
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(7px);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .toast.visible { opacity: 1; transform: translateY(0); }
+    .toast svg { width: 15px; height: 15px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    @keyframes pulse { 50% { opacity: .42; } }
+
+    @media (max-width: 1050px) {
+      .app-shell { padding-right: 25px; padding-left: 25px; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric:nth-child(1), .metric:nth-child(2) { border-bottom: 1px solid var(--border); }
+    }
+    @media (max-width: 760px) {
+      .app-shell { padding: 19px 16px 20px; }
+      .topbar { margin-bottom: 25px; }
+      .brand-subtitle, .brand-divider, .version-chip { display: none; }
+      .topbar-right { gap: 0; }
+      .hero { align-items: flex-start; flex-direction: column; gap: 15px; margin-bottom: 19px; }
+      h1 { font-size: clamp(23px, 6vw, 31px); }
+      .presentation-chip { margin-bottom: 0; }
+      .workspace-toolbar { align-items: flex-start; flex-direction: column; }
+      .toolbar-actions { width: 100%; justify-content: flex-start; }
+      .select-wrap { flex: 1 1 180px; }
+      select { width: 100%; }
+      .comparison { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+      .editor-card { min-height: 410px; }
+      #source-code, .output-scroll { min-height: 360px; }
+      .editor-card.output-card { min-height: 410px; }
+      .bottom-note { align-items: flex-start; flex-direction: column; }
+    }
+    @media (max-width: 480px) {
+      .app-shell { padding-right: 12px; padding-left: 12px; }
+      .metrics { grid-template-columns: minmax(0, 1fr); }
+      .metric { min-height: 55px; border-bottom: 1px solid var(--border); }
+      .metric:last-child { border-bottom: 0; }
+      .metric-label { font-size: 9px; }
+      .toolbar-actions { gap: 6px; }
+      .action-button { padding-right: 9px; padding-left: 9px; font-size: 10px; }
+      .editor-top { padding-right: 10px; padding-left: 10px; }
+      .editor-meta { gap: 5px; }
+      .editor-meta .meta-copy { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3.5 12 8 19M16 5l4.5 7-4.5 7M14 3l-4 18"/></svg>
+        </span>
+        <span class="brand-name">AST Comment Studio</span>
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="brand-subtitle">Code intelligence workspace</span>
+      </div>
+      <div class="topbar-right">
+        <span class="local-chip"><span class="live-dot" aria-hidden="true"></span> Local demo</span>
+        <span class="version-chip">v1.0 · Python</span>
+      </div>
+    </header>
+
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-line" aria-hidden="true"></span> AST + NLP · live workspace</div>
+        <h1 id="page-title">Code Comment Generator<br>— Live Pipeline Visualizer</h1>
+        <p class="hero-description">See what thoughtful documentation adds, line by line. <code>source.py</code> → <code>annotated.py</code></p>
+      </div>
+      <div class="presentation-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4m-5-9 3-3 2 2 4-4"/></svg>
+        Browser-only interactive simulation
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Pipeline status">
+      <div class="metric">
+        <span class="metric-icon green" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <div class="metric-copy"><div class="metric-label">Security gate status</div><div class="metric-value"><span class="success-text">Passed</span> · 100.0% safety score</div></div>
+      </div>
+      <div class="metric">
+        <span class="metric-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-2-12-4 14"/></svg></span>
+        <div class="metric-copy"><div class="metric-label">Engine mode</div><div class="metric-value">Neurosymbolic + AST IR</div></div>
+      </div>
+      <div class="metric">
+        <span class="metric-icon cyan" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8m8 0h-4m4 0v4m0-4 4 4"/><path d="M4 13v-2a8 8 0 0 1 14.6-4.6M20 11v2a8 8 0 0 1-14.6 4.6"/><path d="M12 16v4m-4 0h8"/></svg></span>
+        <div class="metric-copy"><div class="metric-label">LLM agent reviewer</div><div class="metric-value">Active @ <span style="color:#a7d6ff">main.py:159</span></div></div>
+      </div>
+      <div class="metric">
+        <span class="metric-icon purple" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/></svg></span>
+        <div class="metric-copy"><div class="metric-label">Unit test suite</div><div class="metric-value"><span style="color:#cfb2ff">108</span> passing tests</div></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="comparison-heading">
+      <div class="workspace-toolbar">
+        <div class="workspace-heading">
+          <h2 id="comparison-heading">Code comparison</h2>
+          <span class="file-indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <span id="file-name">math_utils.py</span>
+          </span>
+        </div>
+        <div class="toolbar-actions">
+          <label class="sr-only" for="preset-select">Preset examples</label>
+          <span class="select-wrap">
+            <select id="preset-select" aria-label="Preset examples">
+              <option value="math">Math Utilities Function</option>
+              <option value="security">Security Analysis Test</option>
+              <option value="structures">Data Structure Class</option>
+            </select>
+          </span>
+          <button class="action-button" id="toggle-added" type="button" aria-pressed="false" title="Show only the annotations added by the generator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16M12 4v16"/></svg>
+            <span id="toggle-label">Added comments only</span>
+          </button>
+          <button class="action-button" id="copy-output" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>
+            Copy output code
+          </button>
+          <button class="action-button primary" id="generate-comments" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 12 7-12 7V5Z"/></svg>
+            Generate comments
+          </button>
+        </div>
+      </div>
+
+      <div class="comparison">
+        <article class="editor-card" aria-labelledby="input-heading">
+          <div class="editor-top">
+            <div class="editor-title-group">
+              <span class="editor-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+              <div><div class="editor-heading" id="input-heading">Original input code</div><div class="editor-path">workspace / input / <span class="file-name-inline">math_utils.py</span></div></div>
+            </div>
+            <div class="editor-meta"><span class="meta-dot" aria-hidden="true"></span><span class="meta-copy">Editable</span><span class="language-badge">Python 3</span></div>
+          </div>
+          <div class="editor-body">
+            <div class="source-gutter" id="source-gutter" aria-hidden="true"></div>
+            <div class="source-scroll">
+              <label class="sr-only" for="source-code">Original Python source code</label>
+              <textarea id="source-code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-describedby="input-status"></textarea>
+            </div>
+          </div>
+          <div class="editor-footer">
+            <span class="editor-footer-left"><span class="footer-status-dot" aria-hidden="true"></span><span id="input-status">Ready to edit</span></span>
+            <span class="footer-detail" id="input-count">0 lines</span>
+          </div>
+        </article>
+
+        <article class="editor-card output-card" aria-labelledby="output-heading">
+          <div class="editor-top">
+            <div class="editor-title-group">
+              <span class="editor-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8m-8 4h8"/></svg></span>
+              <div><div class="editor-heading" id="output-heading">Annotated output with AST / LLM comments</div><div class="editor-path">workspace / output / <span class="file-name-inline">math_utils.py</span></div></div>
+            </div>
+            <div class="editor-meta"><span class="meta-dot" aria-hidden="true"></span><span class="meta-copy" id="annotation-count">0 annotations</span><span class="language-badge">Python 3</span></div>
+          </div>
+          <div class="editor-body">
+            <div class="output-scroll" id="output-scroll" aria-label="Annotated Python output">
+              <div class="output-gutter" id="output-gutter" aria-hidden="true"></div>
+              <div class="output-lines" id="output-lines"></div>
+            </div>
+          </div>
+          <div class="editor-footer">
+            <span class="editor-footer-left"><span class="footer-status-dot" aria-hidden="true"></span><span id="output-status">Preview ready</span></span>
+            <span class="footer-detail" id="output-count">0 lines</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="pipeline-panel" aria-label="Generation pipeline progress">
+      <div class="pipeline-header">
+        <span class="pipeline-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17 10 5l4 14 6-12"/><path d="M3 19h18"/></svg>
+          Generation pipeline
+        </span>
+        <span class="pipeline-state" id="pipeline-state"><span class="state-dot" aria-hidden="true"></span><span id="pipeline-state-label">Ready · demo preview</span></span>
+      </div>
+      <div class="terminal-content" role="status" aria-live="polite">
+        <div class="terminal-log">
+          <span class="terminal-prompt">›</span>
+          <span class="terminal-message" id="terminal-message">Select a preset or edit the source, then <span class="terminal-blue">generate comments</span> to run the visual pipeline.</span>
+          <span class="terminal-time" id="terminal-time">--:--:--</span>
+        </div>
+        <div class="progress-track" role="progressbar" aria-label="Pipeline progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bottom-note">
+      <span class="note-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+        <span>Annotations are highlighted in soft green. This page runs a local UI simulation; it does not call the Python backend.</span>
+      </span>
+      <span>Built for <span class="note-link">AST + NLP</span> · <code>Python</code></span>
+    </footer>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+    <span id="toast-message">Output copied to clipboard</span>
+  </div>
+
+  <script>
+    "use strict";
+
+    const examples = {
+      math: {
+        file: "math_utils.py",
+        source: [
+          "def calculate_discount(price, discount_percent):",
+          "    if price < 0:",
+          "        raise ValueError(\"price cannot be negative\")",
+          "    if not 0 <= discount_percent <= 100:",
+          "        raise ValueError(\"discount must be between 0 and 100\")",
+          "    return price * (1 - discount_percent / 100)",
+          "",
+          "",
+          "def factorial(number):",
+          "    if number < 0:",
+          "        raise ValueError(\"number must be non-negative\")",
+          "    if number < 2:",
+          "        return 1",
+          "    return number * factorial(number - 1)"
+        ].join("\n")
+      },
+      security: {
+        file: "security_analysis.py",
+        source: [
+          "import hashlib",
+          "import hmac",
+          "",
+          "",
+          "def verify_token(token, expected_digest):",
+          "    if not isinstance(token, str) or not token:",
+          "        return False",
+          "    digest = hashlib.sha256(token.encode(\"utf-8\")).hexdigest()",
+          "    return hmac.compare_digest(digest, expected_digest)",
+          "",
+          "",
+          "def is_safe_redirect(target, allowed_hosts):",
+          "    if not target:",
+          "        return False",
+          "    return target.startswith(tuple(allowed_hosts))"
+        ].join("\n")
+      },
+      structures: {
+        file: "data_structures.py",
+        source: [
+          "class BoundedQueue:",
+          "    def __init__(self, capacity):",
+          "        if capacity <= 0:",
+          "            raise ValueError(\"capacity must be positive\")",
+          "        self.capacity = capacity",
+          "        self._items = []",
+          "",
+          "    def enqueue(self, item):",
+          "        if len(self._items) >= self.capacity:",
+          "            raise OverflowError(\"queue is full\")",
+          "        self._items.append(item)",
+          "",
+          "    def dequeue(self):",
+          "        if not self._items:",
+          "            raise IndexError(\"dequeue from empty queue\")",
+          "        return self._items.pop(0)"
+        ].join("\n")
+      }
+    };
+
+    const sourceEditor = document.getElementById("source-code");
+    const sourceGutter = document.getElementById("source-gutter");
+    const outputLines = document.getElementById("output-lines");
+    const outputGutter = document.getElementById("output-gutter");
+    const outputScroll = document.getElementById("output-scroll");
+    const progressFill = document.getElementById("progress-fill");
+    const progressBar = document.querySelector('[role="progressbar"]');
+    const generateButton = document.getElementById("generate-comments");
+    const toggleButton = document.getElementById("toggle-added");
+    const addedLineNumbers = new Set();
+    let outputCode = "";
+    let annotationTotal = 0;
+    let onlyAdded = false;
+    let toastTimer;
+
+    const escapeHtml = (value) => value.replace(/[&<>"']/g, (character) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[character]);
+
+    function syntaxHighlight(line) {
+      const tokenPattern = /("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#[^\n]*|\b(?:False|None|True|and|as|assert|async|await|break|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|nonlocal|not|or|pass|raise|return|try|while|with|yield)\b|\b(?:abs|all|any|bool|dict|enumerate|float|int|isinstance|len|list|max|min|print|range|set|str|sum|super|tuple|type|zip)\b|\b\d+(?:\.\d+)?\b)/g;
+      let html = "";
+      let cursor = 0;
+      let match;
+      while ((match = tokenPattern.exec(line)) !== null) {
+        html += escapeHtml(line.slice(cursor, match.index));
+        const token = match[0];
+        let tokenClass = "token-number";
+        if (token.startsWith("#")) tokenClass = "token-comment";
+        else if (token.startsWith('"') || token.startsWith("'")) tokenClass = "token-string";
+        else if (/^\d/.test(token)) tokenClass = "token-number";
+        else if (/^(?:abs|all|any|bool|dict|enumerate|float|int|isinstance|len|list|max|min|print|range|set|str|sum|super|tuple|type|zip)$/.test(token)) tokenClass = "token-builtin";
+        else tokenClass = "token-keyword";
+        html += '<span class="' + tokenClass + '">' + escapeHtml(token) + "</span>";
+        cursor = tokenPattern.lastIndex;
+      }
+      return html + escapeHtml(line.slice(cursor));
+    }
+
+    function wordsFromName(name) {
+      const words = name.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").trim();
+      return words ? words[0].toUpperCase() + words.slice(1).toLowerCase() : "This operation";
+    }
+
+    function describeFunction(name, parameters, returnType) {
+      const verb = wordsFromName(name);
+      const args = parameters
+        .split(",")
+        .map((parameter) => parameter.trim().split("=")[0].split(":")[0].trim())
+        .filter((parameter) => parameter && parameter !== "self" && parameter !== "cls" && !parameter.startsWith("*"));
+      let sentence;
+      if (/^(?:is|has|can|should|check|validate|verify|contains|equals)\b/i.test(name)) {
+        sentence = verb + " whether the supplied values meet the condition.";
+      } else if (/^(?:get|fetch|find|load|read|retrieve)\b/i.test(name)) {
+        sentence = verb + " the requested value.";
+      } else if (/^(?:set|update|save|write|store|add|append|remove|delete|enqueue|dequeue|push|pop|clear)\b/i.test(name)) {
+        sentence = verb + " the requested value.";
+      } else {
+        sentence = verb + " using the supplied values.";
+      }
+
+      const lines = ['"""' + sentence];
+      if (args.length) {
+        lines.push("", "Args:");
+        args.forEach((argument) => lines.push("    " + argument + ": Input value."));
+      }
+      if (returnType || /^(?:calculate|compute|factorial|multiply|divide|sum|average|mean|convert|format|is|has|can|should|check|validate|verify|contains|get|find)\b/i.test(name)) {
+        lines.push("", "Returns:", "    The result of the operation.");
+      }
+      lines.push('"""');
+      return lines;
+    }
+
+    function generateAnnotatedCode(source) {
+      const inputLines = source.replace(/\r\n?/g, "\n").split("\n");
+      const result = [];
+      const added = new Set();
+      let annotationCount = 0;
+
+      for (let index = 0; index < inputLines.length; index += 1) {
+        const line = inputLines[index];
+        result.push(line);
+        const definition = line.match(/^(\s*)(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\((.*?)\)\s*(?:->\s*([^:]+))?\s*:\s*(?:#.*)?$/);
+        const classDefinition = line.match(/^(\s*)class\s+([A-Za-z_]\w*)(?:\s*\([^)]*\))?\s*:\s*(?:#.*)?$/);
+        if (!definition && !classDefinition) continue;
+
+        let nextContent = index + 1;
+        while (nextContent < inputLines.length && !inputLines[nextContent].trim()) nextContent += 1;
+        const existingDocstring = nextContent < inputLines.length
+          && /^\s*(?:"""|'''|r"""|r'''|u"""|u''')/.test(inputLines[nextContent]);
+        if (existingDocstring) continue;
+
+        const headerIndent = (definition || classDefinition)[1].length;
+        const nextIndent = nextContent < inputLines.length
+          ? inputLines[nextContent].match(/^\s*/)[0].length
+          : headerIndent + 4;
+        const bodyIndent = nextIndent > headerIndent ? nextIndent : headerIndent + 4;
+        const indent = " ".repeat(bodyIndent);
+        let docstring;
+
+        if (classDefinition) {
+          docstring = ['"""' + wordsFromName(classDefinition[2]) + " implementation.", '"""'];
+        } else {
+          docstring = describeFunction(definition[2], definition[3], Boolean(definition[4]));
+        }
+
+        docstring.forEach((docLine) => {
+          result.push(indent + docLine);
+          added.add(result.length - 1);
+        });
+        annotationCount += 1;
+      }
+      return { code: result.join("\n"), added, annotationCount };
+    }
+
+    function renderGutter(element, lineNumbers) {
+      element.innerHTML = lineNumbers.map((lineNumber) => "<span>" + lineNumber + "</span>").join("");
+    }
+
+    function updateInput() {
+      const lineCount = sourceEditor.value.split("\n").length;
+      renderGutter(sourceGutter, Array.from({ length: lineCount }, (_, index) => index + 1));
+      document.getElementById("input-count").textContent = lineCount + (lineCount === 1 ? " line" : " lines");
+      sourceGutter.scrollTop = sourceEditor.scrollTop;
+    }
+
+    function renderOutput() {
+      const lines = outputCode.split("\n");
+      const visibleLines = lines
+        .map((text, index) => ({ text, index }))
+        .filter(({ index }) => !onlyAdded || addedLineNumbers.has(index));
+
+      if (!visibleLines.length && onlyAdded) {
+        outputGutter.innerHTML = "";
+        outputLines.innerHTML = '<div class="output-empty">No generated docstrings yet. Click <code>Generate comments</code> to annotate the input.</div>';
+      } else {
+        renderGutter(outputGutter, visibleLines.map(({ index }) => index + 1));
+        outputLines.innerHTML = visibleLines.map(({ text, index }) => {
+          const addedClass = addedLineNumbers.has(index) ? " added-line" : "";
+          return '<div class="code-line' + addedClass + '">' + (text ? syntaxHighlight(text) : "&nbsp;") + "</div>";
+        }).join("");
+      }
+
+      const shownLineCount = visibleLines.length;
+      document.getElementById("output-count").textContent = shownLineCount + (shownLineCount === 1 ? " line" : " lines");
+      document.getElementById("annotation-count").textContent = annotationTotal + (annotationTotal === 1 ? " annotation" : " annotations");
+    }
+
+    function refreshPreview(status) {
+      const generated = generateAnnotatedCode(sourceEditor.value);
+      outputCode = generated.code;
+      annotationTotal = generated.annotationCount;
+      addedLineNumbers.clear();
+      generated.added.forEach((lineNumber) => addedLineNumbers.add(lineNumber));
+      renderOutput();
+      updateInput();
+      if (status) {
+        document.getElementById("output-status").textContent = status;
+        document.getElementById("input-status").textContent = "Ready to edit";
+      }
+    }
+
+    function setProgress(value) {
+      const percentage = Math.max(0, Math.min(100, value));
+      progressFill.style.width = percentage + "%";
+      progressBar.setAttribute("aria-valuenow", String(percentage));
+    }
+
+    function setTerminal(message, time) {
+      document.getElementById("terminal-message").innerHTML = message;
+      document.getElementById("terminal-time").textContent = time || new Date().toLocaleTimeString([], { hour12: false });
+    }
+
+    function sleep(milliseconds) {
+      return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+    }
+
+    async function runPipeline() {
+      if (generateButton.disabled) return;
+      const phases = [
+        { progress: 13, message: 'Parsing Python source <span class="terminal-blue">· AST</span>', delay: 330 },
+        { progress: 38, message: 'Building intermediate representation <span class="terminal-blue">· AST IR</span>', delay: 380 },
+        { progress: 66, message: 'Generating docstrings <span class="terminal-blue">· neurosymbolic engine</span>', delay: 460 },
+        { progress: 86, message: 'Validating generated annotations <span class="terminal-blue">· safety gate</span>', delay: 360 },
+        { progress: 100, message: '<span class="terminal-success">Pipeline complete</span> · ', delay: 220 }
+      ];
+      generateButton.disabled = true;
+      generateButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.36-6.36-2.12 2.12M7.76 16.24l-2.12 2.12m12.72 0-2.12-2.12M7.76 7.76 5.64 5.64"/></svg> Generating…';
+      const pipelineState = document.getElementById("pipeline-state");
+      pipelineState.className = "pipeline-state running";
+      document.getElementById("pipeline-state-label").textContent = "Pipeline running";
+      document.getElementById("input-status").textContent = "Analyzing source…";
+      document.getElementById("output-status").textContent = "Generating comments…";
+      setProgress(0);
+
+      try {
+        for (const phase of phases.slice(0, -1)) {
+          setTerminal(phase.message);
+          await sleep(phase.delay);
+          setProgress(phase.progress);
+        }
+
+        refreshPreview();
+        const annotationCount = annotationTotal;
+        const totalLines = outputCode.split("\n").length;
+        const finalPhase = phases[phases.length - 1];
+        setTerminal(finalPhase.message + annotationCount + " docstring" + (annotationCount === 1 ? "" : "s") + " added · " + totalLines + " output lines");
+        setProgress(finalPhase.progress);
+        document.getElementById("input-status").textContent = "Analysis complete";
+        document.getElementById("output-status").textContent = "Generation complete";
+        pipelineState.className = "pipeline-state complete";
+        document.getElementById("pipeline-state-label").textContent = "Completed · 100%";
+      } catch (error) {
+        pipelineState.className = "pipeline-state";
+        document.getElementById("pipeline-state-label").textContent = "Generation failed";
+        document.getElementById("output-status").textContent = "Generation failed";
+        setTerminal("Generation failed · " + escapeHtml(error.message), new Date().toLocaleTimeString([], { hour12: false }));
+      } finally {
+        generateButton.disabled = false;
+        generateButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 12 7-12 7V5Z"/></svg> Generate comments';
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toast-message").textContent = message;
+      toast.classList.add("visible");
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 2300);
+    }
+
+    async function copyOutput() {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(outputCode);
+        } else {
+          const temporary = document.createElement("textarea");
+          temporary.value = outputCode;
+          temporary.setAttribute("readonly", "");
+          temporary.style.position = "fixed";
+          temporary.style.opacity = "0";
+          document.body.appendChild(temporary);
+          temporary.select();
+          const copied = document.execCommand("copy");
+          temporary.remove();
+          if (!copied) throw new Error("Clipboard access is unavailable in this browser.");
+        }
+        showToast("Annotated code copied to clipboard");
+      } catch (error) {
+        showToast(error.message || "Could not access the clipboard");
+      }
+    }
+
+    function loadPreset(key) {
+      const example = examples[key];
+      if (!example) return;
+      sourceEditor.value = example.source;
+      document.getElementById("file-name").textContent = example.file;
+      document.querySelectorAll(".file-name-inline").forEach((element) => { element.textContent = example.file; });
+      document.getElementById("input-status").textContent = "Ready to edit";
+      document.getElementById("output-status").textContent = "Preview ready";
+      refreshPreview();
+      setProgress(0);
+      const pipelineState = document.getElementById("pipeline-state");
+      pipelineState.className = "pipeline-state";
+      document.getElementById("pipeline-state-label").textContent = "Ready · demo preview";
+      setTerminal('Preset loaded · click <span class="terminal-blue">Generate comments</span> to run the visual pipeline.', "--:--:--");
+    }
+
+    sourceEditor.addEventListener("input", () => refreshPreview("Preview updated"));
+    sourceEditor.addEventListener("scroll", () => { sourceGutter.scrollTop = sourceEditor.scrollTop; });
+    document.getElementById("preset-select").addEventListener("change", (event) => loadPreset(event.target.value));
+    document.getElementById("generate-comments").addEventListener("click", runPipeline);
+    document.getElementById("copy-output").addEventListener("click", copyOutput);
+    toggleButton.addEventListener("click", () => {
+      onlyAdded = !onlyAdded;
+      toggleButton.setAttribute("aria-pressed", String(onlyAdded));
+      document.getElementById("toggle-label").textContent = onlyAdded ? "Show full output" : "Added comments only";
+      renderOutput();
+    });
+
+    loadPreset("math");
+  </script>
+</body>
+</html>

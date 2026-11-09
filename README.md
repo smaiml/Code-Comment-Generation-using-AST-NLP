@@ -96,3 +96,7 @@ Both generation engines apply automatic docstring sanitization to ensure generat
 - **Raw string sanitization**: Removes invalid raw string prefixes (r""", u""", etc.) that could break syntax
 - **Content validation**: All dynamic content (parameters, types, exceptions) is validated before insertion
 - This guarantees output Python files are always compilable and valid
+
+## Live Pipeline Visualizer
+
+Open [`web/index.html`](web/index.html) in a browser to explore the side-by-side code comparison demo. The page includes editable Python examples, simulated annotation generation, a pipeline progress display, comment-only view, and copy-to-clipboard controls. This standalone browser demo does not connect to the Python generation backend.
