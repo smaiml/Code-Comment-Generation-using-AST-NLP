@@ -1060,6 +1060,7 @@
     .fix-diff-line.added { background: #ecfdf5; color: #047857; }
     .fix-validation { margin: 10px 0 14px; color: #047857; font-size: 12px; font-weight: 650; }
     .fix-validation.needs-review { color: #b45309; }
+    .confirm-fix-review-button { width: 100%; margin-bottom: 8px; }
     .apply-fix-button { width: 100%; min-height: 40px; border: 1px solid #d97706; border-radius: 8px; background: #d97706; color: #fff; cursor: pointer; font-size: 13px; font-weight: 700; }
     .apply-fix-button:hover:not(:disabled) { border-color: #b45309; background: #b45309; }
     .output-copy-button { min-height: 29px; padding: 0 9px; border-radius: 6px; font-size: 12px; }
@@ -1422,6 +1423,7 @@
           <p class="fix-intro">Locally generated agent suggestion · review before applying. Green lines are additions; red lines are replaced code.</p>
           <pre class="fix-diff" id="fix-diff" aria-label="Agent fix code preview"></pre>
           <p class="fix-validation" id="fix-validation"></p>
+          <button class="action-button confirm-fix-review-button" id="confirm-fix-review" type="button" disabled>Confirm manual review</button>
           <button class="apply-fix-button" id="apply-agent-fix" type="button">Apply Fix to Editor</button>
         </div>
       </aside>
@@ -2131,6 +2133,7 @@
     let countdownInterval;
     let latestFindings = [];
     let proposedFix = "";
+    let fixReviewConfirmed = false;
     let lastPresetKey = "math";
     let currentLanguage = "python";
 
@@ -2832,11 +2835,14 @@
       const fixedReview = analyzeCode(proposedFix);
       const fixedGate = evaluateSecurityGate(proposedFix);
       renderFixDiff(sourceEditor.value, proposedFix);
-      document.getElementById("fix-validation").textContent = fixedGate.passed
-        ? "Secure patch generated. Security risks are removed and an audit docstring was added."
-        : "Review required: " + fixedGate.findings.map((finding) => finding.code).join(", ");
-      document.getElementById("fix-validation").classList.toggle("needs-review", !fixedGate.passed);
-      document.getElementById("apply-agent-fix").disabled = !(fixedGate.passed && fixedReview.findings.length === 0);
+      const canApply = fixedGate.passed && fixedReview.findings.length === 0;
+      document.getElementById("fix-validation").textContent = !fixedGate.passed
+        ? "Review required: " + fixedGate.findings.map((finding) => finding.code).join(", ")
+        : fixedReview.findings.length
+          ? "The repair is incomplete (" + fixedReview.findings.length + " issue(s) remain)."
+          : "Checks passed. Review and manually confirm to apply.";
+      document.getElementById("fix-validation").classList.toggle("needs-review", !canApply);
+      prepareFixReview(canApply);
       openAgentDrawer("fix");
     }
 
@@ -3339,6 +3345,43 @@
       agentStatusRow.hidden = false;
       latestFindings = [];
       proposedFix = "";
+      fixReviewConfirmed = false;
+      document.getElementById("confirm-fix-review").disabled = true;
+      document.getElementById("confirm-fix-review").textContent = "Confirm manual review";
+      document.getElementById("apply-agent-fix").disabled = true;
+    }
+
+    function prepareFixReview(canApply) {
+      fixReviewConfirmed = false;
+      document.getElementById("confirm-fix-review").disabled = !canApply;
+      document.getElementById("confirm-fix-review").textContent = "Confirm manual review";
+      document.getElementById("apply-agent-fix").disabled = true;
+    }
+
+    function confirmFixReview() {
+      if (!proposedFix) {
+        prepareFixReview(false);
+        return;
+      }
+      const fixedReview = analyzeCode(proposedFix);
+      const fixedGate = evaluateSecurityGate(proposedFix);
+      if (!fixedGate.passed || fixedReview.findings.length) {
+        const validation = document.getElementById("fix-validation");
+        validation.textContent = !fixedGate.passed
+          ? "Review required: " + fixedGate.findings.map((finding) => finding.code).join(", ")
+          : "The repair is incomplete (" + fixedReview.findings.length + " issue(s) remain).";
+        validation.classList.add("needs-review");
+        prepareFixReview(false);
+        return;
+      }
+
+      fixReviewConfirmed = true;
+      document.getElementById("confirm-fix-review").disabled = true;
+      document.getElementById("confirm-fix-review").textContent = "Review confirmed";
+      document.getElementById("apply-agent-fix").disabled = false;
+      const validation = document.getElementById("fix-validation");
+      validation.textContent = "Review confirmed. The validated fix is ready to apply.";
+      validation.classList.remove("needs-review");
     }
 
     function scheduleIdleCheck(label) {
@@ -3827,14 +3870,17 @@
       }
       proposedFix = generateAgentRepair(sourceEditor.value, review);
       const fixedReview = analyzeCode(proposedFix);
-      const canApply = fixedReview.findings.length === 0;
+      const fixedGate = evaluateSecurityGate(proposedFix);
+      const canApply = fixedGate.passed && fixedReview.findings.length === 0;
       renderFixDiff(sourceEditor.value, proposedFix);
       const validation = document.getElementById("fix-validation");
-      validation.textContent = canApply
-        ? "Checks pass on the proposed code. Review and approve to apply."
-        : "The repair is incomplete (" + fixedReview.findings.length + " issue(s) remain). Continue in the editor before applying.";
+      validation.textContent = !fixedGate.passed
+        ? "Review required: " + fixedGate.findings.map((finding) => finding.code).join(", ")
+        : fixedReview.findings.length
+          ? "The repair is incomplete (" + fixedReview.findings.length + " issue(s) remain). Continue in the editor before applying."
+          : "Checks pass on the proposed code. Review and manually confirm to apply.";
       validation.classList.toggle("needs-review", !canApply);
-      document.getElementById("apply-agent-fix").disabled = !canApply;
+      prepareFixReview(canApply);
       openAgentDrawer("fix");
     }
 
@@ -3858,7 +3904,15 @@
     }
 
     async function applyAgentFix() {
-      if (!proposedFix || analyzeCode(proposedFix).findings.length) return;
+      if (
+        !proposedFix ||
+        !fixReviewConfirmed ||
+        analyzeCode(proposedFix).findings.length ||
+        !evaluateSecurityGate(proposedFix).passed
+      ) {
+        showToast("A manual review and passing security checks are required before applying this fix.");
+        return;
+      }
       clearIdleCheck();
       diffBaseCode = sourceEditor.value;
       sourceEditor.value = proposedFix;
@@ -4210,6 +4264,7 @@
     document.getElementById("diagnose-issues").addEventListener("click", () => openAgentDrawer("diagnostics"));
     document.getElementById("get-agent-fix").addEventListener("click", getAgentFix);
     document.getElementById("diagnostic-get-fix").addEventListener("click", getAgentFix);
+    document.getElementById("confirm-fix-review").addEventListener("click", confirmFixReview);
     document.getElementById("apply-agent-fix").addEventListener("click", applyAgentFix);
     document.getElementById("close-agent-drawer").addEventListener("click", () => { agentDrawer.hidden = true; });
     llmToggle.addEventListener("click", () => {
