@@ -83,6 +83,25 @@
     .brand-subtitle { color: var(--text-muted); font-size: 13px; font-weight: 450; letter-spacing: 0; }
 
     .topbar-right { display: flex; flex: 0 0 auto; align-items: center; gap: 15px; color: var(--text-muted); font-size: 13px; }
+    .backend-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      max-width: 250px;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .backend-status:hover { border-color: var(--blue); color: var(--text); }
+    .backend-status-dot { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: #f59e0b; }
+    .backend-status.is-connected .backend-status-dot { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,.45); }
+    .backend-status.is-checking .backend-status-dot { background: #3b82f6; animation: pulse 1s infinite; }
     .local-chip, .version-chip { display: inline-flex; align-items: center; gap: 7px; }
     .local-chip { color: #a7b5c3; }
     .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px rgba(16, 185, 129, .42); }
@@ -311,6 +330,19 @@
     .ast-node.branch { border-left-color: #f59e0b; }
     .ast-node.loop { border-left-color: #06b6d4; }
     .ast-node.return { border-left-color: var(--green); }
+    .diff-toggle[aria-pressed="true"] { border-color: rgba(16,185,129,.5); background: rgba(16,185,129,.12); color: #047857; }
+    .diff-line { display: block; min-height: 1.75em; padding: 0 16px; border-left: 2px solid transparent; color: var(--code-text); font-family: var(--mono); font-size: 15.5px; line-height: 1.75; white-space: pre; }
+    .diff-line.added { border-left-color: #10b981; background: rgba(16,185,129,.12); color: #047857; }
+    .diff-line.removed { border-left-color: #f43f5e; background: rgba(244,63,94,.10); color: #be123c; }
+    .diff-line.context { color: var(--text-muted); }
+    .diff-line-marker { display: inline-block; width: 22px; user-select: none; }
+    .audit-export-button { border-color: rgba(16,185,129,.35); color: #047857; }
+    [data-theme="dark"] .diff-line.added { border-left-color: #10b981; background: rgba(16,185,129,.10); color: #6ee7b7; }
+    [data-theme="dark"] .diff-line.removed { border-left-color: #f43f5e; background: rgba(244,63,94,.10); color: #fda4af; }
+    [data-theme="dark"] .diff-line.context { color: #94a3b8; }
+    [data-theme="dark"] .diff-toggle[aria-pressed="true"] { border-color: #047857; background: rgba(16,185,129,.14); color: #6ee7b7; }
+    [data-theme="dark"] .audit-export-button { border-color: rgba(52,211,153,.35); color: #6ee7b7; }
+    [data-theme="dark"] .backend-status { border-color: var(--border); background: var(--surface); color: #cbd5e1; }
     .node-inspector {
       min-width: 0;
       background: rgba(15, 23, 42, .96);
@@ -608,10 +640,11 @@
       .app-shell { padding: 19px 16px 20px; }
       .app-header { flex-wrap: wrap; gap: 0 16px; margin-bottom: 10px; }
       .brand, .topbar-right { padding-top: 10px; }
-      .topbar-right { margin-left: auto; }
+      .topbar-right { width: 100%; justify-content: space-between; gap: 8px; margin-left: 0; padding-bottom: 8px; }
       .app-header .tab-nav { order: 3; flex-basis: 100%; justify-content: flex-start; }
       .brand-subtitle, .brand-divider, .version-chip { display: none; }
-      .topbar-right { gap: 0; }
+      .backend-status { max-width: none; overflow: hidden; text-overflow: ellipsis; }
+      .audit-export-button { flex: 0 0 auto; }
       .hero { align-items: flex-start; flex-direction: column; gap: 12px; margin-bottom: 16px; }
       h1 { font-size: clamp(22px, 6vw, 29px); }
       .presentation-chip { margin-bottom: 0; }
@@ -1098,6 +1131,11 @@
     [data-theme="dark"] .action-button { border-color: var(--border); color: var(--text); }
     [data-theme="dark"] .action-button:hover:not(:disabled) { background: #334155; }
     [data-theme="dark"] .action-button.primary { border-color: #2563eb; background: #2563eb; color: #fff; }
+    [data-theme="dark"] .diff-line.added { border-left-color: #10b981; background: rgba(16,185,129,.10); color: #6ee7b7; }
+    [data-theme="dark"] .diff-line.removed { border-left-color: #f43f5e; background: rgba(244,63,94,.10); color: #fda4af; }
+    [data-theme="dark"] .diff-line.context { color: #94a3b8; }
+    [data-theme="dark"] .diff-toggle[aria-pressed="true"] { border-color: #047857; background: rgba(16,185,129,.14); color: #6ee7b7; }
+    [data-theme="dark"] .audit-export-button { border-color: rgba(52,211,153,.35); color: #6ee7b7; }
     [data-theme="dark"] .llm-toggle[aria-pressed="true"] { border-color: #1d4ed8; background: #1e3a5f; color: #bfdbfe; }
     [data-theme="dark"] .editor-top { background: var(--surface); }
     [data-theme="dark"] .editor-card { border-color: var(--border); }
@@ -1242,6 +1280,11 @@
         </button>
       </nav>
       <div class="topbar-right">
+        <button class="backend-status" id="backend-status" type="button" aria-live="polite" title="Static demo mode. Click to check the local Python AST endpoint at http://localhost:8000/health. No source code is sent.">
+          <span class="backend-status-dot" aria-hidden="true"></span>
+          <span id="backend-status-label">⚡ Static Demo Mode</span>
+        </button>
+        <button class="action-button audit-export-button" id="export-audit-report" type="button" title="Download a Markdown audit summary">Export Audit Report</button>
         <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light theme" aria-pressed="true" title="Switch to light theme">
           <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
           <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
@@ -1373,7 +1416,7 @@
               <span class="editor-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8m-8 4h8"/></svg></span>
               <div><div class="editor-heading" id="output-heading">Annotated output</div></div>
             </div>
-            <div class="editor-meta"><span class="meta-dot" aria-hidden="true"></span><span class="meta-copy" id="annotation-count">0 annotations</span><button class="action-button" id="generate-tests" type="button">Generate Unit Tests</button><button class="action-button output-copy-button" id="copy-output" type="button" aria-label="Copy output code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copy</span></button></div>
+            <div class="editor-meta"><span class="meta-dot" aria-hidden="true"></span><span class="meta-copy" id="annotation-count">0 annotations</span><button class="action-button" id="generate-tests" type="button">Generate Unit Tests</button><button class="action-button diff-toggle" id="toggle-diff-view" type="button" aria-pressed="false">Diff View</button><button class="action-button output-copy-button" id="copy-output" type="button" aria-label="Copy output code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copy</span></button></div>
           </div>
           <div class="editor-body">
             <div class="output-scroll" id="output-scroll" aria-label="Annotated Python output">
@@ -1884,8 +1927,11 @@
     const agentFixContent = document.getElementById("agent-fix-content");
     const addedLineNumbers = new Set();
     let outputCode = "";
+    let diffBaseCode = "";
     let annotationTotal = 0;
     let onlyAdded = false;
+    let diffMode = false;
+    let backendCheckTimer;
     let reviewerEnabled = true;
     let toastTimer;
     let idleTimeout;
@@ -2120,6 +2166,29 @@
     }
 
     function renderOutput() {
+      if (diffMode) {
+        const diffRows = buildDiffRows(diffBaseCode, outputCode);
+        const visibleDiffRows = onlyAdded
+          ? diffRows.filter((row) => row.type === "added")
+          : diffRows;
+        if (!visibleDiffRows.length) {
+          outputGutter.innerHTML = "";
+          outputLines.innerHTML = '<div class="output-empty">No changes to display in the current diff.</div>';
+        } else {
+          renderGutter(outputGutter, visibleDiffRows.map((row) => row.lineNumber));
+          outputLines.innerHTML = visibleDiffRows.map((row) => {
+            const marker = row.type === "added" ? "+" : row.type === "removed" ? "−" : " ";
+            return '<div class="diff-line ' + row.type + '"><span class="diff-line-marker">' + marker +
+              '</span>' + (row.text ? syntaxHighlight(row.text) : "&nbsp;") + "</div>";
+          }).join("");
+        }
+        document.getElementById("output-count").textContent =
+          visibleDiffRows.length + (visibleDiffRows.length === 1 ? " diff line" : " diff lines");
+        document.getElementById("annotation-count").textContent =
+          annotationTotal + (annotationTotal === 1 ? " annotation" : " annotations");
+        return;
+      }
+
       const lines = outputCode.split("\n");
       const visibleLines = lines
         .map((text, index) => ({ text, index }))
@@ -2139,6 +2208,68 @@
       const shownLineCount = visibleLines.length;
       document.getElementById("output-count").textContent = shownLineCount + (shownLineCount === 1 ? " line" : " lines");
       document.getElementById("annotation-count").textContent = annotationTotal + (annotationTotal === 1 ? " annotation" : " annotations");
+    }
+
+    function buildDiffRows(before, after) {
+      const oldLines = before.replace(/\r\n?/g, "\n").split("\n");
+      const newLines = after.replace(/\r\n?/g, "\n").split("\n");
+      const columns = newLines.length + 1;
+      const rows = [];
+      let oldIndex = 0;
+      let newIndex = 0;
+
+      if ((oldLines.length + 1) * columns > 500000) {
+        let prefix = 0;
+        while (prefix < oldLines.length && prefix < newLines.length && oldLines[prefix] === newLines[prefix]) {
+          rows.push({ type: "context", text: oldLines[prefix], lineNumber: prefix + 1 });
+          prefix += 1;
+        }
+        let suffix = 0;
+        while (suffix < oldLines.length - prefix && suffix < newLines.length - prefix &&
+          oldLines[oldLines.length - 1 - suffix] === newLines[newLines.length - 1 - suffix]) suffix += 1;
+        for (let index = prefix; index < oldLines.length - suffix; index += 1) {
+          rows.push({ type: "removed", text: oldLines[index], lineNumber: index + 1 });
+        }
+        for (let index = prefix; index < newLines.length - suffix; index += 1) {
+          rows.push({ type: "added", text: newLines[index], lineNumber: index + 1 });
+        }
+        for (let index = suffix; index > 0; index -= 1) {
+          rows.push({ type: "context", text: oldLines[oldLines.length - index], lineNumber: oldLines.length - index + 1 });
+        }
+        return rows;
+      }
+
+      const matrix = new Uint32Array((oldLines.length + 1) * columns);
+      for (let i = oldLines.length - 1; i >= 0; i -= 1) {
+        for (let j = newLines.length - 1; j >= 0; j -= 1) {
+          const index = i * columns + j;
+          matrix[index] = oldLines[i] === newLines[j]
+            ? matrix[(i + 1) * columns + j + 1] + 1
+            : Math.max(matrix[(i + 1) * columns + j], matrix[i * columns + j + 1]);
+        }
+      }
+      while (oldIndex < oldLines.length && newIndex < newLines.length) {
+        if (oldLines[oldIndex] === newLines[newIndex]) {
+          rows.push({ type: "context", text: newLines[newIndex], lineNumber: newIndex + 1 });
+          oldIndex += 1;
+          newIndex += 1;
+        } else if (matrix[(oldIndex + 1) * columns + newIndex] >= matrix[oldIndex * columns + newIndex + 1]) {
+          rows.push({ type: "removed", text: oldLines[oldIndex], lineNumber: oldIndex + 1 });
+          oldIndex += 1;
+        } else {
+          rows.push({ type: "added", text: newLines[newIndex], lineNumber: newIndex + 1 });
+          newIndex += 1;
+        }
+      }
+      while (oldIndex < oldLines.length) {
+        rows.push({ type: "removed", text: oldLines[oldIndex], lineNumber: oldIndex + 1 });
+        oldIndex += 1;
+      }
+      while (newIndex < newLines.length) {
+        rows.push({ type: "added", text: newLines[newIndex], lineNumber: newIndex + 1 });
+        newIndex += 1;
+      }
+      return rows;
     }
 
     function refreshPreview(status) {
@@ -3472,6 +3603,7 @@
     async function applyAgentFix() {
       if (!proposedFix || analyzeCode(proposedFix).findings.length) return;
       clearIdleCheck();
+      diffBaseCode = sourceEditor.value;
       sourceEditor.value = proposedFix;
       clearAgentPanels();
       securityAlert.hidden = true;
@@ -3592,6 +3724,98 @@
       toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 2300);
     }
 
+    function exportAuditReport() {
+      const gate = evaluateSecurityGate(sourceEditor.value);
+      const maintainability = document.getElementById("maintainability-score").textContent;
+      const grade = document.getElementById("maintainability-grade").textContent;
+      const complexity = analyzeComplexity(sourceEditor.value);
+      const findings = gate.findings.length
+        ? gate.findings.map((finding) => "- **" + finding.code + ":** " + finding.message).join("\n")
+        : "- No findings detected by the local static security rules.";
+      let docs = [];
+      if (currentLanguage === "python") {
+        const matches = outputCode.match(/^[ \t]*("""[\s\S]*?""")/gm);
+        docs = matches || [];
+      } else {
+        docs = outputCode.split("\n").filter((line) => /^\s*(?:\/\*\*|\/\/\/)/.test(line));
+      }
+      const docSection = docs.length
+        ? docs.map((doc) => "```" + currentLanguage + "\n" + doc + "\n```").join("\n\n")
+        : "_No generated docstrings/comments are currently available._";
+      const report = [
+        "# Code Audit Report",
+        "",
+        "- **File:** " + document.getElementById("file-name").textContent,
+        "- **Language:** " + languageInfo[currentLanguage].shortLabel,
+        "- **Generated:** " + new Date().toLocaleString(),
+        "- **Maintainability Index:** " + maintainability + " (" + grade + ")",
+        "- **Security status:** " + (gate.passed ? "PASS" : "REVIEW REQUIRED") + " · " + gate.score + "% safety",
+        "- **Security findings:** " + gate.findings.length,
+        "- **Estimated complexity:** Time " + complexity.time + "; Space " + complexity.space,
+        "- **Cyclomatic complexity / AST nodes:** " + document.getElementById("complexity-metrics").textContent,
+        "",
+        "## Security Findings",
+        "",
+        findings,
+        "",
+        "## Generated Documentation",
+        "",
+        docSection,
+        "",
+        "> This browser-only report is based on local heuristics and is not a substitute for a full security review."
+      ].join("\n");
+      const blob = new Blob([report], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "code_audit_report.md";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showToast("Audit report downloaded");
+    }
+
+    async function checkBackendStatus() {
+      const button = document.getElementById("backend-status");
+      const label = document.getElementById("backend-status-label");
+      button.disabled = true;
+      button.classList.remove("is-connected");
+      button.classList.add("is-checking");
+      label.textContent = "Checking local engine…";
+      button.title = "Checking http://localhost:8000/health. No source code is sent.";
+      const started = performance.now();
+      const controller = new AbortController();
+      backendCheckTimer = window.setTimeout(() => controller.abort(), 2800);
+      try {
+        const response = await fetch("http://localhost:8000/health", {
+          method: "GET",
+          cache: "no-store",
+          headers: { "Accept": "application/json" },
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error("Health endpoint returned HTTP " + response.status);
+        const health = await response.json();
+        if (!health || !["python-ast", "python_ast", "connected"].includes(String(health.engine || "").toLowerCase())) {
+          throw new Error("The endpoint did not identify a Python AST engine.");
+        }
+        const latency = Math.round(performance.now() - started);
+        button.classList.add("is-connected");
+        label.textContent = "🟢 Python AST Engine Connected · " + latency + "ms";
+        button.title = "Connected to the Python AST engine at http://localhost:8000/health (" + latency + " ms).";
+        showToast("Local Python AST engine connected · " + latency + "ms");
+      } catch (error) {
+        const simulatedLatency = 18 + Math.floor(Math.random() * 24);
+        label.textContent = "⚡ Static Demo Mode · " + simulatedLatency + "ms simulated";
+        button.title = "No compatible Python AST health endpoint at http://localhost:8000/health. Static demo remains available; no source code was sent.";
+        showToast("Static demo mode · local Python engine unavailable");
+      } finally {
+        window.clearTimeout(backendCheckTimer);
+        button.classList.remove("is-checking");
+        button.disabled = false;
+      }
+    }
+
     function setLanguage(language) {
       if (!languageInfo[language]) return;
       currentLanguage = language;
@@ -3657,6 +3881,7 @@
       document.getElementById("language-select").value = currentLanguage;
       securityAlert.hidden = true;
       sourceEditor.value = example.source;
+      diffBaseCode = example.source;
       const gate = evaluateSecurityGate(sourceEditor.value);
       updateGateSummary(gate.passed, gate.score);
       document.getElementById("file-name").textContent = example.file;
@@ -3685,6 +3910,14 @@
     });
     document.getElementById("generate-comments").addEventListener("click", runPipeline);
     document.getElementById("copy-output").addEventListener("click", copyOutput);
+    document.getElementById("export-audit-report").addEventListener("click", exportAuditReport);
+    document.getElementById("backend-status").addEventListener("click", checkBackendStatus);
+    document.getElementById("toggle-diff-view").addEventListener("click", (event) => {
+      diffMode = !diffMode;
+      event.currentTarget.setAttribute("aria-pressed", String(diffMode));
+      event.currentTarget.textContent = diffMode ? "Code View" : "Diff View";
+      renderOutput();
+    });
     document.getElementById("generate-tests").addEventListener("click", openGeneratedTests);
     document.getElementById("patch-security-vulnerability").addEventListener("click", openSecurityPatch);
     document.getElementById("refactor-document").addEventListener("click", refactorAndDocumentAll);
