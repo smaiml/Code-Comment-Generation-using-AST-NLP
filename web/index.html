@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0B0F19">
-  <title>Autonomous Code Intelligence &amp; Security Studio</title>
+  <title>Autonomous Code Intelligence &amp; Security Studio: AST-Driven Comment Generation &amp; Vulnerability Remediation</title>
   <style>
     :root {
       color-scheme: light;
@@ -59,14 +59,18 @@
 
     .app-header {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      gap: 24px;
+      justify-content: space-between;
+      gap: 0 24px;
       min-height: 54px;
       margin-bottom: 13px;
       border-bottom: 1px solid var(--border-subtle);
     }
 
     .brand { display: flex; flex: 0 0 auto; align-items: center; gap: 11px; color: var(--text); font-weight: 650; letter-spacing: -.025em; }
+    .app-header .brand { order: 1; }
+    .app-header .tab-nav { flex: 0 0 100%; order: 4; }
     .brand-mark {
       display: grid;
       width: 31px;
@@ -78,11 +82,29 @@
       color: var(--blue);
     }
     .brand-mark svg { width: 18px; height: 18px; }
-    .brand-name { font-size: 14px; }
+    .brand-title {
+      flex: 0 0 100%;
+      order: 3;
+      margin: 8px 0 2px;
+      color: var(--text);
+      font-size: clamp(18px, 1.8vw, 24px);
+      font-weight: 650;
+      letter-spacing: -.02em;
+      line-height: 1.4;
+      text-align: center;
+    }
+    .brand-name { color: inherit; }
+    .brand-accent {
+      background-image: linear-gradient(90deg, #38bdf8, #818cf8);
+      background-clip: text;
+      color: #818cf8;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
     .brand-divider { width: 1px; height: 18px; margin: 0 2px; background: var(--border); }
     .brand-subtitle { color: var(--text-muted); font-size: 13px; font-weight: 450; letter-spacing: 0; }
 
-    .topbar-right { display: flex; flex: 0 0 auto; align-items: center; gap: 15px; color: var(--text-muted); font-size: 13px; }
+    .topbar-right { display: flex; flex: 0 0 auto; order: 2; align-items: center; gap: 15px; color: var(--text-muted); font-size: 13px; }
     .backend-status {
       display: inline-flex;
       align-items: center;
@@ -641,7 +663,8 @@
       .app-header { flex-wrap: wrap; gap: 0 16px; margin-bottom: 10px; }
       .brand, .topbar-right { padding-top: 10px; }
       .topbar-right { width: 100%; justify-content: space-between; gap: 8px; margin-left: 0; padding-bottom: 8px; }
-      .app-header .tab-nav { order: 3; flex-basis: 100%; justify-content: flex-start; }
+      .app-header .brand-title { order: 3; }
+      .app-header .tab-nav { order: 4; flex-basis: 100%; justify-content: flex-start; }
       .brand-subtitle, .brand-divider, .version-chip { display: none; }
       .backend-status { max-width: none; overflow: hidden; text-overflow: ellipsis; }
       .audit-export-button { flex: 0 0 auto; }
@@ -830,34 +853,59 @@
     .pipeline-state.blocked .state-dot { background: #ef4444; }
     .security-text { color: #dc2626; }
 
-    .flow-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
-    .flow-card {
-      position: relative;
-      display: flex;
-      min-width: 0;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 20px;
+    .architecture-figure {
+      overflow: hidden;
       border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #fff;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, .04);
-      color: inherit;
-      cursor: pointer;
-      text-align: left;
-      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+      border-radius: 16px;
+      background: #f4f7fb;
+      box-shadow: 0 14px 34px rgba(15, 23, 42, .12);
     }
-    .flow-card:not(:last-child)::after { position: absolute; top: 36px; right: -14px; z-index: 1; color: #94a3b8; content: "→"; font-size: 19px; font-weight: 700; }
-    .flow-card:hover, .flow-card:focus-visible, .flow-card[aria-expanded="true"] { border-color: #93c5fd; box-shadow: 0 8px 22px rgba(37, 99, 235, .1); transform: translateY(-2px); }
-    .flow-number { display: grid; width: 34px; height: 34px; place-items: center; margin-bottom: 16px; border-radius: 10px; background: #eff6ff; color: #2563eb; font-family: var(--mono); font-size: 13px; font-weight: 700; }
-    .flow-card:nth-child(2) .flow-number { background: #fef2f2; color: #dc2626; }
-    .flow-card:nth-child(3) .flow-number { background: #f5f3ff; color: #7c3aed; }
-    .flow-card:nth-child(4) .flow-number { background: var(--green-soft); color: #059669; }
-    .flow-card strong { display: block; margin-bottom: 8px; color: var(--text); font-size: 15px; line-height: 1.4; }
-    .flow-card > span:not(.flow-number) { color: var(--text-muted); font-size: 13px; line-height: 1.6; }
-    .flow-extra { display: none; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--border); color: #334155 !important; }
-    .flow-card[aria-expanded="true"] .flow-extra { display: block; }
-    .flow-hint { margin: 18px 0 0; color: var(--text-muted); font-size: 13px; }
+    .architecture-scroll { overflow-x: auto; scrollbar-color: #94a3b8 #e2e8f0; scrollbar-width: thin; }
+    .architecture-svg { display: block; width: 100%; min-width: 1240px; height: auto; }
+    .architecture-svg text { font-family: var(--sans); }
+    .architecture-svg .map-canvas { fill: #f4f7fb; }
+    .architecture-svg .map-frame { fill: none; stroke: #17365d; stroke-width: 3; }
+    .architecture-svg .map-kicker, .architecture-svg .lane-kicker { fill: #1d4ed8; font-family: var(--mono); font-size: 12px; font-weight: 800; letter-spacing: 1.5px; }
+    .architecture-svg .map-title { fill: #102a4c; font-size: 27px; font-weight: 800; }
+    .architecture-svg .map-subtitle { fill: #475569; font-size: 13px; }
+    .architecture-svg .legend-text { fill: #334155; font-size: 11px; font-weight: 650; }
+    .architecture-svg .lane { fill: #fff; stroke: #cbd5e1; stroke-width: 1.5; }
+    .architecture-svg .lane-header { fill: #e8f0fa; }
+    .architecture-svg .lane-title { fill: #17365d; font-size: 13px; font-weight: 800; letter-spacing: .7px; }
+    .architecture-svg .lane-note { fill: #64748b; font-size: 11px; }
+    .architecture-svg .node { fill: #fff; stroke: #24466f; stroke-width: 2; }
+    .architecture-svg .node-input { fill: #eaf5ff; stroke: #0876a8; }
+    .architecture-svg .node-output { fill: #eaf8ef; stroke: #16834a; }
+    .architecture-svg .node-review { fill: #f3edff; stroke: #7653b8; }
+    .architecture-svg .node-error { fill: #fff1f0; stroke: #c73935; }
+    .architecture-svg .node-title { fill: #102a4c; font-size: 15px; font-weight: 800; }
+    .architecture-svg .node-copy { fill: #475569; font-size: 12px; }
+    .architecture-svg .node-code { fill: #1d4ed8; font-family: var(--mono); font-size: 11px; font-weight: 650; }
+    .architecture-svg .decision { fill: #fff8df; stroke: #c28a12; stroke-width: 2.5; }
+    .architecture-svg .decision-title { fill: #67470b; font-size: 14px; font-weight: 800; text-anchor: middle; }
+    .architecture-svg .route { fill: none; stroke: #24466f; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#flow-arrow); }
+    .architecture-svg .route-plain { fill: none; stroke: #24466f; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .architecture-svg .route-fail { fill: none; stroke: #c73935; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#fail-arrow); }
+    .architecture-svg .route-train { fill: none; stroke: #7653b8; stroke-width: 2.5; stroke-dasharray: 8 7; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#train-arrow); }
+    .architecture-svg .branch-label { fill: #1e3a5f; font-family: var(--mono); font-size: 10px; font-weight: 800; }
+    .architecture-svg .fail-label { fill: #b4232d; font-family: var(--mono); font-size: 10px; font-weight: 800; }
+    .architecture-svg .engine-rule { fill: #eff8ff; stroke: #1482b4; }
+    .architecture-svg .engine-neuro { fill: #f5f0ff; stroke: #7653b8; }
+    .architecture-svg .engine-t5 { fill: #fff8e6; stroke: #be8b18; }
+    .architecture-svg .engine-tag { font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .8px; }
+    .architecture-svg .engine-rule + .engine-tag { fill: #12658d; }
+    .architecture-svg .tag-neuro { fill: #6741a5; }
+    .architecture-svg .tag-t5 { fill: #8a5c08; }
+    .architecture-svg .training-lane { fill: #f7f4ff; stroke: #7653b8; stroke-width: 1.8; stroke-dasharray: 8 6; }
+    .architecture-svg .training-node { fill: #fff; stroke: #9582c7; stroke-width: 1.6; }
+    .architecture-svg .training-index { fill: #6741a5; font-family: var(--mono); font-size: 11px; font-weight: 800; }
+    .architecture-svg .training-title { fill: #31224e; font-size: 13px; font-weight: 800; }
+    .architecture-svg .training-copy { fill: #5b4b78; font-size: 11px; }
+    .architecture-svg .join-dot { fill: #24466f; stroke: #fff; stroke-width: 2; }
+    .architecture-caption { display: flex; justify-content: space-between; gap: 18px; padding: 11px 15px; border-top: 1px solid #cbd5e1; background: #fff; color: #475569; font-size: 11px; line-height: 1.5; }
+    .architecture-caption strong { color: #17365d; }
+    .diagram-scroll-cue { display: none; }
+    .flow-hint { margin: 12px 0 0; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
     .upgrade-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     .upgrade-card, .summary-card {
       padding: 22px;
@@ -904,8 +952,6 @@
     .audit-code .json-number { color: #7c3aed; }
 
     @media (max-width: 950px) {
-      .flow-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .flow-card:nth-child(2)::after { display: none; }
       .security-summary { grid-template-columns: 1fr 1fr; }
       .security-summary .summary-card:last-child { grid-column: 1 / -1; }
     }
@@ -914,19 +960,14 @@
       .tab-button { justify-content: flex-start; }
       .upgrade-grid, .security-summary { grid-template-columns: 1fr; }
       .security-summary .summary-card:last-child { grid-column: auto; }
-      .flow-card:nth-child(2)::after { display: block; }
-      .flow-card:nth-child(even)::after { display: none; }
+      .architecture-caption { align-items: flex-start; flex-direction: column; gap: 5px; }
+      .diagram-scroll-cue { display: inline; }
       .panel-intro { margin-bottom: 17px; }
     }
     @media (max-width: 480px) {
-      .flow-grid { grid-template-columns: 1fr; }
-      .flow-card:not(:last-child)::after { top: auto; right: 50%; bottom: -19px; transform: rotate(90deg); }
-      .flow-card:nth-child(even)::after { display: block; }
-      .flow-card { padding: 17px; }
       .audit-code { padding: 15px; font-size: 12px; }
       .tab-button { padding: 0 12px; font-size: 12px; }
     }
-
     .agent-status-row {
       display: flex;
       min-height: 0;
@@ -1049,7 +1090,7 @@
     [data-theme="dark"] .theme-icon-moon { display: block; }
     body, .brand-mark, .version-chip, .presentation-chip, .tab-nav, .tab-button,
     .metric, .action-button, .editor-card, .editor-top, .editor-body, .editor-footer,
-    .pipeline-panel, .pipeline-header, .flow-card, .upgrade-card, .summary-card,
+    .pipeline-panel, .pipeline-header, .upgrade-card, .summary-card,
     .agent-alert, .agent-drawer, .agent-drawer-close, .diagnostic-item, .fix-diff, .audit-code {
       transition: background-color .2s ease, color .2s ease, border-color .2s ease,
         box-shadow .2s ease, transform .2s ease;
@@ -1113,7 +1154,7 @@
     [data-theme="dark"] .action-button, [data-theme="dark"] select,
     [data-theme="dark"] .editor-card, [data-theme="dark"] .editor-top,
     [data-theme="dark"] .editor-footer, [data-theme="dark"] .pipeline-panel,
-    [data-theme="dark"] .pipeline-header, [data-theme="dark"] .flow-card,
+    [data-theme="dark"] .pipeline-header,
     [data-theme="dark"] .upgrade-card, [data-theme="dark"] .summary-card,
     [data-theme="dark"] .agent-drawer, [data-theme="dark"] .agent-drawer-close,
     [data-theme="dark"] .agent-alert-button { background-color: var(--surface); color: var(--text); }
@@ -1193,12 +1234,6 @@
       background: #0f172a;
       color: #f8fafc;
     }
-    [data-theme="dark"] .flow-card > span:not(.flow-number) { color: #94a3b8; }
-    [data-theme="dark"] .flow-number { background: #1e3a5f; color: #93c5fd; }
-    [data-theme="dark"] .flow-card:nth-child(2) .flow-number { background: #450a0a; color: #fca5a5; }
-    [data-theme="dark"] .flow-card:nth-child(3) .flow-number { background: #2e1065; color: #c4b5fd; }
-    [data-theme="dark"] .flow-card:nth-child(4) .flow-number { background: rgba(16, 185, 129, .14); color: #6ee7b7; }
-    [data-theme="dark"] .flow-extra { border-color: var(--border); color: #cbd5e1 !important; }
     [data-theme="dark"] .upgrade-card > p, [data-theme="dark"] .summary-card > p,
     [data-theme="dark"] .rule-copy { color: #94a3b8; }
     [data-theme="dark"] .upgrade-card.new-additions { border-color: var(--border); }
@@ -1255,11 +1290,14 @@
 <body>
   <main class="app-shell">
     <header class="app-header">
-      <div class="brand">
+      <div class="brand" aria-hidden="true">
         <span class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3.5 12 8 19M16 5l4.5 7-4.5 7M14 3l-4 18"/></svg>
         </span>
-        <span class="brand-name">Autonomous Code Intelligence &amp; Security Studio</span>
+      </div>
+      <div class="brand-title" aria-label="Autonomous Code Intelligence &amp; Security Studio: AST-Driven Comment Generation &amp; Vulnerability Remediation">
+        <span class="brand-name">Autonomous Code Intelligence &amp; Security Studio:</span>
+        <span class="brand-accent">AST-Driven Comment Generation &amp; Vulnerability Remediation</span>
       </div>
       <nav class="tab-nav" role="tablist" aria-label="Application sections">
         <button class="tab-button" id="tab-studio" type="button" role="tab" aria-selected="true" aria-controls="panel-studio" tabindex="0">
@@ -1292,7 +1330,7 @@
       </div>
     </header>
 
-    <h1 class="sr-only" id="page-title">Autonomous Code Intelligence and Security Studio</h1>
+    <h1 class="sr-only" id="page-title">Autonomous Code Intelligence &amp; Security Studio: AST-Driven Comment Generation &amp; Vulnerability Remediation</h1>
 
     <section class="tab-panel is-active" id="panel-studio" role="tabpanel" aria-labelledby="tab-studio">
       <section aria-labelledby="comparison-heading">
@@ -1530,36 +1568,191 @@
     <section class="tab-panel" id="panel-architecture" role="tabpanel" aria-labelledby="tab-architecture" hidden>
       <div class="panel-intro">
         <p class="panel-kicker">How it works</p>
-        <h2 class="panel-title">A guarded path from source to useful docs</h2>
-        <p class="panel-description">The pipeline combines syntax-aware context, a pre-generation safety check, neurosymbolic drafting, and static validation. Select a stage to reveal more detail.</p>
+        <h2 class="panel-title">A source file’s journey through the system</h2>
+        <p class="panel-description">Follow the parse and security decisions, the selected generation engine, optional review, and final analysis. The separate training lane shows where the optional T5 model comes from.</p>
       </div>
-      <div class="flow-grid" aria-label="Four-stage generation pipeline">
-        <button class="flow-card" type="button" aria-expanded="false">
-          <span class="flow-number">01</span>
-          <strong>AST Parse &amp; Context</strong>
-          <span>Parse Python into an intermediate representation and gather local symbols, signatures, and control context.</span>
-          <span class="flow-extra">The structured representation keeps generated documentation anchored to the code rather than relying on raw text alone.</span>
-        </button>
-        <button class="flow-card" type="button" aria-expanded="false">
-          <span class="flow-number">02</span>
-          <strong>Pre-Generation Security Gate</strong>
-          <span>Evaluate source against SEC001–SEC004 rules before any documentation is generated.</span>
-          <span class="flow-extra">Scores below the 80% threshold are blocked. The demo gate inspects source text only and never executes submitted code.</span>
-        </button>
-        <button class="flow-card" type="button" aria-expanded="false">
-          <span class="flow-number">03</span>
-          <strong>Neurosymbolic Draft + Optional LLM Reviewer</strong>
-          <span>Draft docstrings from program structure, then optionally review wording and completeness.</span>
-          <span class="flow-extra">The reviewer is an optional stage represented in the local UI simulation; no external service is contacted.</span>
-        </button>
-        <button class="flow-card" type="button" aria-expanded="false">
-          <span class="flow-number">04</span>
-          <strong>Static Analysis CFG/DFA &amp; Output</strong>
-          <span>Check generated annotations against control-flow and data-flow context before rendering output.</span>
-          <span class="flow-extra">Generated lines are highlighted separately so a reviewer can quickly compare additions with the original source.</span>
-        </button>
-      </div>
-      <p class="flow-hint">This browser-only walkthrough is illustrative; it does not call the Python backend.</p>
+      <figure class="architecture-figure">
+        <div class="architecture-scroll" role="region" aria-label="Scrollable full project architecture diagram" tabindex="0">
+          <svg class="architecture-svg" viewBox="0 0 1600 1400" role="img" aria-labelledby="architecture-svg-title architecture-svg-description">
+            <title id="architecture-svg-title">End-to-end architecture of the AST-driven code comment generation system</title>
+            <desc id="architecture-svg-description">A flowchart follows Python source from CLI or desktop GUI through parsing, AST and context extraction, and a security gate. Invalid syntax and unsafe code exit through separate diagnostic paths. Safe source enters one selected generation route: rule-based AST, neurosymbolic fusion, or the trained T5 model. Generated documentation may receive optional LLM summary review, then is attached to source and checked through IR, CFG, DFA, and pattern analysis before annotated source and reports are delivered. A separate offline training lane builds and evaluates the T5 artifact that feeds the T5 route.</desc>
+            <defs>
+              <marker id="flow-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#24466f"/></marker>
+              <marker id="fail-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#c73935"/></marker>
+              <marker id="train-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#7653b8"/></marker>
+            </defs>
+            <rect class="map-canvas" width="1600" height="1400"/>
+            <rect class="map-frame" x="22" y="22" width="1556" height="1356" rx="8"/>
+
+            <text class="map-kicker" x="55" y="55">PROJECT ARCHITECTURE · END-TO-END FLOW</text>
+            <text class="map-title" x="55" y="91">From Python source to verified documentation</text>
+            <text class="map-subtitle" x="55" y="116">Follow the arrows, decision gates, safe exits, and model-training path.</text>
+            <path class="route" d="M1000 106H1050"/><text class="legend-text" x="1060" y="110">runtime path</text>
+            <path class="route-fail" d="M1190 106H1240"/><text class="legend-text" x="1250" y="110">blocked / invalid</text>
+            <path class="route-train" d="M1410 106H1460"/><text class="legend-text" x="1470" y="110">training</text>
+
+            <rect class="lane" x="40" y="135" width="1520" height="315" rx="16"/>
+            <path class="lane-header" d="M56 135H1544a16 16 0 0 1 16 16v35H40v-35a16 16 0 0 1 16-16Z"/>
+            <text class="lane-title" x="65" y="165">01 · SOURCE INTAKE AND SAFETY GATES</text>
+            <text class="lane-note" x="920" y="165">A failed gate stops generation and returns its diagnostic or security findings.</text>
+
+            <path class="route" d="M250 235H300"/>
+            <path class="route" d="M540 235H575"/>
+            <path class="route" d="M725 235H800"/>
+            <path class="route" d="M1020 235H1080"/>
+            <text class="branch-label" x="746" y="218">YES</text>
+            <text class="branch-label" x="1038" y="218">PARSE OK</text>
+            <path class="route-fail" d="M650 297V345"/>
+            <text class="fail-label" x="665" y="326">NO</text>
+            <path class="route-fail" d="M1170 303V345"/>
+            <text class="fail-label" x="1186" y="331">NO</text>
+
+            <path class="node node-input" d="M72 180H222L250 235 222 290H72L44 235Z"/>
+            <text class="node-title" x="147" y="219" text-anchor="middle">Python source</text>
+            <text class="node-copy" x="147" y="241" text-anchor="middle">CLI · desktop GUI</text>
+            <text class="node-code" x="147" y="263" text-anchor="middle">.py module / function</text>
+
+            <rect class="node" x="300" y="180" width="240" height="110" rx="12"/>
+            <text class="lane-kicker" x="320" y="204">01A · FRONT END</text>
+            <text class="node-title" x="320" y="232">Parse + validate</text>
+            <text class="node-copy" x="320" y="254">Read source, build Python AST,</text>
+            <text class="node-copy" x="320" y="273">stop on syntax / validation errors.</text>
+
+            <polygon class="decision" points="650,173 725,235 650,297 575,235"/>
+            <text class="decision-title" x="650" y="230">Valid</text>
+            <text class="decision-title" x="650" y="249">Python?</text>
+
+            <rect class="node" x="800" y="180" width="220" height="110" rx="12"/>
+            <text class="lane-kicker" x="820" y="204">01B · UNDERSTAND</text>
+            <text class="node-title" x="820" y="232">AST + context</text>
+            <text class="node-copy" x="820" y="254">Functions · calls · complexity</text>
+            <text class="node-copy" x="820" y="273">Symbols and semantic signals</text>
+
+            <polygon class="decision" points="1170,157 1260,235 1170,313 1080,235"/>
+            <text class="decision-title" x="1170" y="228">Security</text>
+            <text class="decision-title" x="1170" y="247">gate</text>
+            <text class="node-copy" x="1170" y="265" text-anchor="middle">score + findings</text>
+
+            <rect class="node node-error" x="500" y="345" width="300" height="82" rx="10"/>
+            <text class="node-title" x="520" y="375">Syntax / validation error</text>
+            <text class="node-copy" x="520" y="400">Diagnostic returned · generation stops</text>
+            <circle cx="770" cy="386" r="13" fill="#c73935"/><path d="m764 380 12 12m0-12-12 12" stroke="#fff" stroke-width="2.5"/>
+
+            <rect class="node node-error" x="1020" y="345" width="300" height="82" rx="10"/>
+            <text class="node-title" x="1040" y="375">Security findings</text>
+            <text class="node-copy" x="1040" y="400">Blocked · no comments are generated</text>
+            <circle cx="1290" cy="386" r="13" fill="#c73935"/><path d="m1284 380 12 12m0-12-12 12" stroke="#fff" stroke-width="2.5"/>
+
+            <rect class="lane" x="40" y="465" width="1520" height="270" rx="16"/>
+            <path class="lane-header" d="M56 465H1544a16 16 0 0 1 16 16v36H40v-36a16 16 0 0 1 16-16Z"/>
+            <text class="lane-title" x="65" y="493">02 · SELECT ONE DOCUMENTATION ENGINE</text>
+            <text class="lane-note" x="950" y="493">The run mode selects one route; the three engines are alternatives.</text>
+            <path class="route-plain" d="M1260 235H1515V530H315"/>
+            <text class="branch-label" x="1280" y="218">YES · SAFE</text>
+            <path class="route" d="M315 530V555"/>
+            <path class="route" d="M795 530V555"/>
+            <path class="route" d="M1285 530V555"/>
+
+            <rect class="node engine-rule" x="150" y="555" width="330" height="120" rx="14"/>
+            <text class="engine-tag tag-rule" x="175" y="582">DEFAULT · DETERMINISTIC</text>
+            <text class="node-title" x="175" y="612">Rule-based AST</text>
+            <text class="node-copy" x="175" y="638">Build summaries from parsed structure</text>
+            <text class="node-copy" x="175" y="658">No trained model required</text>
+
+            <rect class="node engine-neuro" x="630" y="555" width="330" height="120" rx="14"/>
+            <text class="engine-tag tag-neuro" x="655" y="582">CONFIDENCE-GATED FUSION</text>
+            <text class="node-title" x="655" y="612">Neurosymbolic</text>
+            <text class="node-copy" x="655" y="638">Combine T5 + symbolic AST evidence</text>
+            <text class="node-copy" x="655" y="658">Fall back to rules if checks fail</text>
+
+            <rect class="node engine-t5" x="1120" y="555" width="330" height="120" rx="14"/>
+            <text class="engine-tag tag-t5" x="1145" y="582">OPTIONAL · TRAINED MODEL</text>
+            <text class="node-title" x="1145" y="612">AST + NLP (T5)</text>
+            <text class="node-copy" x="1145" y="638">Structured AST features → summary</text>
+            <text class="node-copy" x="1145" y="658">Requires a saved model artifact</text>
+
+            <path class="route-plain" d="M315 675V710H795M795 675V710M1285 675V710H795"/>
+            <path class="route" d="M795 710V742"/>
+            <rect class="node" x="685" y="742" width="220" height="75" rx="12"/>
+            <text class="lane-kicker" x="705" y="766">GENERATION RESULT</text>
+            <text class="node-title" x="705" y="793">Docstring candidate</text>
+
+            <path class="route" d="M795 817V830"/>
+            <polygon class="decision" points="795,830 910,895 795,960 680,895"/>
+            <text class="decision-title" x="795" y="890">LLM summary</text>
+            <text class="decision-title" x="795" y="909">review enabled?</text>
+            <path class="route" d="M910 895H1040"/>
+            <text class="branch-label" x="955" y="880">YES</text>
+            <path class="route" d="M795 960V1000"/>
+            <text class="branch-label" x="812" y="984">NO · BYPASS</text>
+
+            <rect class="node node-review" x="1040" y="850" width="285" height="92" rx="12"/>
+            <text class="lane-kicker" x="1060" y="876">OPTIONAL REVIEW</text>
+            <text class="node-title" x="1060" y="903">Revise summary only</text>
+            <text class="node-copy" x="1060" y="924">AST-derived sections stay intact</text>
+            <path class="route" d="M1182 942V1000H795"/>
+            <circle class="join-dot" cx="795" cy="1000" r="8"/>
+
+            <path class="route" d="M795 1000V1036H365V1060"/>
+            <rect class="node" x="230" y="1060" width="270" height="80" rx="12"/>
+            <text class="lane-kicker" x="250" y="1085">ASSEMBLE</text>
+            <text class="node-title" x="250" y="1112">Attach docs to source</text>
+
+            <path class="route" d="M500 1100H565"/>
+            <rect class="node" x="565" y="1060" width="250" height="80" rx="12"/>
+            <text class="lane-kicker" x="585" y="1085">LOWER</text>
+            <text class="node-title" x="585" y="1112">Build IR + CFG</text>
+
+            <path class="route" d="M815 1100H875"/>
+            <rect class="node" x="875" y="1060" width="260" height="80" rx="12"/>
+            <text class="lane-kicker" x="895" y="1085">ANALYZE</text>
+            <text class="node-title" x="895" y="1112">DFA + code patterns</text>
+
+            <path class="route" d="M1135 1100H1215"/>
+            <path class="node node-output" d="M1215 1060H1490L1520 1100 1490 1140H1215Z"/>
+            <text class="node-title" x="1365" y="1089" text-anchor="middle">Deliver results</text>
+            <text class="node-copy" x="1365" y="1112" text-anchor="middle">Annotated source · reports · GUI insights</text>
+
+            <rect class="training-lane" x="40" y="1165" width="1520" height="190" rx="16"/>
+            <text class="lane-title" x="65" y="1197">OFFLINE · TRAIN THE OPTIONAL T5 ROUTE</text>
+            <text class="lane-note" x="605" y="1197">This lifecycle runs separately from each source-code request.</text>
+
+            <path class="route-train" d="M380 1280H450"/>
+            <path class="route-train" d="M740 1280H810"/>
+            <path class="route-train" d="M1100 1280H1170"/>
+            <rect class="training-node" x="90" y="1225" width="290" height="100" rx="11"/>
+            <text class="training-index" x="112" y="1254">A</text>
+            <text class="training-title" x="140" y="1254">Training corpora</text>
+            <text class="training-copy" x="112" y="1282">CodeSearchNet + Python stdlib</text>
+            <text class="training-copy" x="112" y="1304">AST features → docstring examples</text>
+
+            <rect class="training-node" x="450" y="1225" width="290" height="100" rx="11"/>
+            <text class="training-index" x="472" y="1254">B</text>
+            <text class="training-title" x="500" y="1254">AST dataset builder</text>
+            <text class="training-copy" x="472" y="1282">ast_dataset_builder.py</text>
+            <text class="training-copy" x="472" y="1304">Structured features → targets</text>
+
+            <rect class="training-node" x="810" y="1225" width="290" height="100" rx="11"/>
+            <text class="training-index" x="832" y="1254">C</text>
+            <text class="training-title" x="860" y="1254">Train + evaluate T5</text>
+            <text class="training-copy" x="832" y="1282">trainer.py · evaluator.py</text>
+            <text class="training-copy" x="832" y="1304">BLEU · ROUGE-L · exact match</text>
+
+            <rect class="training-node" x="1170" y="1225" width="290" height="100" rx="11"/>
+            <text class="training-index" x="1192" y="1254">D</text>
+            <text class="training-title" x="1220" y="1254">Saved model artifact</text>
+            <text class="training-copy" x="1192" y="1282">outputs/model/ast_model/</text>
+            <text class="training-copy" x="1192" y="1304">Loaded for T5 / fusion modes</text>
+            <path class="route-train" d="M1460 1275H1545V615H1450"/>
+          </svg>
+        </div>
+        <figcaption class="architecture-caption">
+          <span><strong>Runtime:</strong> blue arrows show one request; red branches stop on invalid or unsafe input.</span>
+          <span><strong>Training:</strong> the dashed violet route feeds the saved model into T5.</span>
+          <span class="diagram-scroll-cue">Scroll sideways to follow each branch.</span>
+        </figcaption>
+      </figure>
+      <p class="flow-hint">The map describes the Python project architecture. This web tab is illustrative and does not call the Python backend.</p>
     </section>
 
     <section class="tab-panel" id="panel-upgrades" role="tabpanel" aria-labelledby="tab-upgrades" hidden>
@@ -2768,6 +2961,15 @@
       }
 
       const blockHeader = /^(?:async\s+)?(?:def|class|if|elif|else|for|while|try|except|finally|with|match|case)\b/;
+      function hasTopLevelColon(line) {
+        let depth = 0;
+        for (const character of line) {
+          if (character === "(" || character === "[" || character === "{") depth += 1;
+          else if ((character === ")" || character === "]" || character === "}") && depth > 0) depth -= 1;
+          else if (character === ":" && depth === 0) return true;
+        }
+        return false;
+      }
       const significantLines = [];
       let crossLanguageMismatchReported = false;
       maskedLines.forEach((line, index) => {
@@ -2785,13 +2987,39 @@
         const indent = prefix.replace(/\t/g, "    ").length;
         significantLines.push({ index, code: trimmed, indent, prefix });
 
+        const missingFunctionParentheses = trimmed.match(/^(?:async\s+)?def\s+([A-Za-z_]\w*)\s*:/);
+        if (missingFunctionParentheses) {
+          addFinding(index + 1, "Syntax",
+            "SyntaxError: missing parentheses in function definition. Did you mean 'def " + missingFunctionParentheses[1] + "()'?",
+            "Python function definitions must include parentheses after the function name.",
+            { repair: "add-function-parentheses", symbol: missingFunctionParentheses[1] });
+        }
+
+        const compoundCondition = trimmed.match(/^(?:if|elif)\s+(.+)$/);
+        const ternaryCondition = !/^(?:async\s+)?(?:if|elif)\b/.test(trimmed)
+          ? trimmed.match(/\bif\s+(.+?)(?:\s+\belse\b.*)?$/)
+          : null;
+        const conditionalText = compoundCondition
+          ? compoundCondition[1].replace(/:\s*$/, "")
+          : ternaryCondition
+            ? (ternaryCondition[1].match(/^(.*?)(?:\s+\belse\b.*)?$/) || [null, ternaryCondition[1]])[1]
+            : "";
+        if (conditionalText && /(?<![=!<>])=(?!=)/.test(conditionalText)) {
+          const message = "SyntaxError: expected comparison operator '==' inside conditional expression, found assignment '='.";
+          addFinding(index + 1, "Syntax", message, message, { repair: "fix-conditional-assignment" });
+        }
+        if (ternaryCondition && !/\belse\b/.test(trimmed.slice(trimmed.indexOf("if") + 2))) {
+          const message = "SyntaxError: incomplete Python ternary 'X if C else Y' requires a matching 'else' clause.";
+          addFinding(index + 1, "Syntax", message, message, { repair: "complete-python-ternary" });
+        }
+
         if (indent === 0 && /^return\b/.test(trimmed)) {
           addFinding(index + 1, "Syntax", "SyntaxError: 'return' outside function", "A Python return statement must be inside a function.", { repair: "wrap-top-level-python" });
         }
         if (prefix.includes("\t") && prefix.includes(" ")) {
           addFinding(index + 1, "Indentation", "Mixed tabs and spaces", "This line combines tabs and spaces at the indentation level; use one consistent style.", { repair: "normalize-indent" });
         }
-        if (blockHeader.test(trimmed) && !trimmed.endsWith(":") && !trimmed.includes(":") && bracketDepths[index] === 0) {
+        if (blockHeader.test(trimmed) && !hasTopLevelColon(trimmed) && bracketDepths[index] === 0) {
           addFinding(index + 1, "Syntax", "SyntaxError: expected ':' after Python block header", "Python block headers such as def, if, for, and class must end with a colon.", { repair: "add-colon" });
         }
 
@@ -2998,14 +3226,14 @@
         }
         const condition = trimmed.match(/^(?:else\s+)?(if|while|for|switch)\b(?!\s*\()/);
         if (condition && language !== "python") {
-          const message = "SyntaxError: expected '(' after '" + condition[1] + "'";
-          addFinding(index + 1, "Syntax", message, message + " and a matching ')' around its condition.", { repair: "wrap-control-condition", keyword: condition[1] });
+          const message = "SyntaxError: expected '(' after condition keyword.";
+          addFinding(index + 1, "Syntax", message, message + " Add parentheses around the condition for '" + condition[1] + "'.", { repair: "wrap-control-condition", keyword: condition[1] });
         }
         const isClassHeader = /^(?:(?:public|private|protected|abstract|final|static)\s+)*(?:class|interface|enum|record|struct|namespace)\b/.test(trimmed);
         const isFunctionHeader = /^(?:(?:public|private|protected|static|final|abstract|synchronized|virtual|inline|constexpr|friend|explicit)\s+)*(?:[\w:<>*&\[\],?]+\s+)+[A-Za-z_$]\w*\s*\([^;]*\)\s*(?:const\s*)?(?:\{\s*)?$/.test(trimmed);
         const inFunction = scopeStack.includes("function");
         const pythonConstruct = language === "java" || language === "cpp"
-          ? /^(?:def\s+|print\s*\(|(?:async\s+)?(?:if|elif|else|for|while|try|except)\b(?!\s*\().*:\s*$)/.test(trimmed)
+          ? /^(?:async\s+)?(?:def\s+|print(?:\s|\s*\()|(?:if|elif|else|for|while|try|except)\b(?!\s*\().*:\s*$)/.test(trimmed)
           : false;
         if (pythonConstruct && !crossLanguageMismatchReported) {
           crossLanguageMismatchReported = true;
@@ -3022,7 +3250,8 @@
           || (trimmed.endsWith(";") && !functionPrototype && !/^(?:package\b|import\b|using\b|typedef\b)/.test(trimmed));
         if ((language === "java" || language === "cpp") && !inFunction && !ignoredTopLevel
           && !isClassHeader && !isFunctionHeader && !functionPrototype && !javaDeclaration
-          && hasTopLevelStatement && !(scopeStack.includes("class") && typedField)) {
+          && hasTopLevelStatement && !(scopeStack.includes("class") && typedField)
+          && !(language === "cpp" && typedField)) {
           const message = /^(?:if|while|for|switch)\b/.test(trimmed)
             ? "expected unqualified-id before '" + trimmed.split(/\s/)[0] + "'"
             : "Top-level executable statement outside a function or main().";
@@ -3481,7 +3710,35 @@
       const expectedBlockIndents = new Map();
       review.findings.forEach((finding) => {
         const index = finding.line - 1;
-        if (finding.repair === "add-colon") {
+        if (finding.repair === "add-function-parentheses") {
+          lines[index] = lines[index].replace(
+            /^(\s*(?:async\s+)?def\s+)([A-Za-z_]\w*)\s*:/,
+            "$1$2():"
+          );
+        } else if (finding.repair === "fix-conditional-assignment") {
+          const line = lines[index];
+          const compound = line.match(/^(\s*(?:if|elif)\s+)(.*)$/);
+          if (compound) {
+            const colonIndex = compound[2].lastIndexOf(":");
+            const condition = colonIndex === compound[2].length - 1
+              ? compound[2].slice(0, colonIndex)
+              : compound[2];
+            const suffix = colonIndex === compound[2].length - 1 ? ":" : "";
+            lines[index] = compound[1] + condition.replace(/(?<![=!<>])=(?!=)/g, "==") + suffix;
+          } else {
+            const ternaryStart = line.search(/\bif\b/);
+            if (ternaryStart !== -1) {
+              const conditionStart = line.indexOf(" ", ternaryStart) + 1;
+              const elseIndex = line.indexOf(" else ", conditionStart);
+              const conditionEnd = elseIndex === -1 ? line.length : elseIndex;
+              lines[index] = line.slice(0, conditionStart)
+                + line.slice(conditionStart, conditionEnd).replace(/(?<![=!<>])=(?!=)/g, "==")
+                + line.slice(conditionEnd);
+            }
+          }
+        } else if (finding.repair === "complete-python-ternary") {
+          lines[index] += " else None";
+        } else if (finding.repair === "add-colon") {
           const visibleEnd = review.maskedLines[index].trimEnd().length;
           lines[index] = lines[index].slice(0, visibleEnd) + ":" + lines[index].slice(visibleEnd);
         } else if (finding.repair === "fix-spaced-operator") {
@@ -3993,13 +4250,6 @@
         event.preventDefault();
         activateTab(tabs[nextIndex]);
         tabs[nextIndex].focus();
-      });
-    });
-
-    document.querySelectorAll(".flow-card").forEach((card) => {
-      card.addEventListener("click", () => {
-        const expanded = card.getAttribute("aria-expanded") === "true";
-        card.setAttribute("aria-expanded", String(!expanded));
       });
     });
 
