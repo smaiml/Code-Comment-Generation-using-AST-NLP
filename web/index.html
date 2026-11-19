@@ -1886,21 +1886,25 @@
       security: {
         file: "security_analysis.py",
         source: [
-          "import hashlib",
-          "import hmac",
+          "import sqlite3",
+          "import subprocess",
           "",
+          "API_KEY = \"sk_live_demo_9876543210_hardcoded_secret\"",
           "",
-          "def verify_token(token, expected_digest):",
-          "    if not isinstance(token, str) or not token:",
-          "        return False",
-          "    digest = hashlib.sha256(token.encode(\"utf-8\")).hexdigest()",
-          "    return hmac.compare_digest(digest, expected_digest)",
+          "def find_user_by_name(db_path, username):",
+          "    conn = sqlite3.connect(db_path)",
+          "    cursor = conn.cursor()",
+          "    # Potential SQL injection via string formatting (SEC004)",
+          "    query = f\"SELECT id, username, role FROM users WHERE username = '{username}'\"",
+          "    cursor.execute(query)",
+          "    rows = cursor.fetchall()",
+          "    conn.close()",
+          "    return rows",
           "",
-          "",
-          "def is_safe_redirect(target, allowed_hosts):",
-          "    if not target:",
-          "        return False",
-          "    return target.startswith(tuple(allowed_hosts))"
+          "def ping_host(host):",
+          "    # Potential OS command injection via shell=True (SEC002)",
+          "    completed = subprocess.run(f\"ping -n 1 {host}\", shell=True, capture_output=True, text=True)",
+          "    return completed.stdout"
         ].join("\n")
       },
       structures: {
@@ -3387,7 +3391,7 @@
 
     function scheduleIdleCheck(label) {
       clearIdleCheck();
-      const deadline = Date.now() + 10000;
+      const deadline = Date.now() + 5000;
       const updateCountdown = () => {
         const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
         setIdleStatus((label || "Typing") + " · check in " + seconds + "s", "is-typing");
@@ -3397,8 +3401,8 @@
       idleTimeout = window.setTimeout(() => {
         clearIdleCheck();
         setIdleStatus("Scanning code…", "is-scanning");
-        window.setTimeout(runIdleCheck, 80);
-      }, 10000);
+        runIdleCheck();
+      }, 5000);
     }
 
     function renderDiagnostics(findings) {
@@ -3979,16 +3983,16 @@
       updateGateSummary(true, gate.score);
       const languageName = languageInfo[currentLanguage].shortLabel;
       const phases = [
-        { progress: 13, message: 'Parsing ' + escapeHtml(languageName) + ' source <span class="terminal-blue">· syntax</span>', delay: 330 },
-        { progress: 38, message: 'Building intermediate representation <span class="terminal-blue">· AST IR</span>', delay: 380 },
-        { progress: 61, message: 'Generating documentation <span class="terminal-blue">· neurosymbolic engine</span>', delay: 460 }
+        { progress: 13, message: 'Parsing ' + escapeHtml(languageName) + ' source <span class="terminal-blue">· syntax</span>', delay: 5000 },
+        { progress: 38, message: 'Building intermediate representation <span class="terminal-blue">· AST IR</span>', delay: 5000 },
+        { progress: 61, message: 'Generating documentation <span class="terminal-blue">· neurosymbolic engine</span>', delay: 5000 }
       ];
       if (reviewerEnabled) {
-        phases.push({ progress: 78, message: 'Reviewing generated comments <span class="terminal-blue">· optional LLM reviewer</span>', delay: 360 });
+        phases.push({ progress: 78, message: 'Reviewing generated comments <span class="terminal-blue">· optional LLM reviewer</span>', delay: 5000 });
       }
       phases.push(
-        { progress: 90, message: 'Validating generated annotations <span class="terminal-blue">· static analysis</span>', delay: 360 },
-        { progress: 100, message: '<span class="terminal-success">Pipeline complete</span> · ', delay: 220 }
+        { progress: 90, message: 'Validating generated annotations <span class="terminal-blue">· static analysis</span>', delay: 5000 },
+        { progress: 100, message: '<span class="terminal-success">Pipeline complete</span> · ', delay: 5000 }
       );
       generateButton.disabled = true;
       generateButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.36-6.36-2.12 2.12M7.76 16.24l-2.12 2.12m12.72 0-2.12-2.12M7.76 7.76 5.64 5.64"/></svg> Generating…';

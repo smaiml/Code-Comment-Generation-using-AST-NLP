@@ -7,14 +7,25 @@ from src.security_agent import run_security_agent
 
 
 SECURITY_CODE = '''
-def run_user_expression(expr: str):
-    eval(expr)
+import sqlite3
+import subprocess
 
+API_KEY = "sk_live_demo_9876543210_hardcoded_secret"
 
-def shell_execute(cmd: str) -> str:
-    import subprocess
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    return result.stdout
+def find_user_by_name(db_path, username):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    # Potential SQL injection via string formatting (SEC004)
+    query = f"SELECT id, username, role FROM users WHERE username = '{username}'"
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+def ping_host(host):
+    # Potential OS command injection via shell=True (SEC002)
+    completed = subprocess.run(f"ping -n 1 {host}", shell=True, capture_output=True, text=True)
+    return completed.stdout
 '''
 
 
