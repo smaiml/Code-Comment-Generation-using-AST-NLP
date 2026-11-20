@@ -1542,7 +1542,7 @@
       </div>
       <div class="metric">
         <span class="metric-icon purple" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 12 2 2 4-4"/><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/></svg></span>
-        <div class="metric-copy"><div class="metric-label">Unit test suite</div><div class="metric-value"><span style="color:#cfb2ff">108</span> passing tests</div></div>
+        <div class="metric-copy"><div class="metric-label">Unit test suite</div><div class="metric-value"><span style="color:#cfb2ff">115</span> passing tests</div></div>
       </div>
     </section>
 
@@ -1777,12 +1777,14 @@
         <article class="upgrade-card new-additions">
           <span class="upgrade-label">Engineering additions</span>
           <h3>New Engineering Additions</h3>
-          <p>Guardrails and review features that strengthen the end-to-end experience.</p>
+          <p>Local AI assistance, static code checks, security guardrails, and safer repair previews.</p>
           <ul class="upgrade-list">
-            <li><strong>80% Threshold Security Gate</strong> — blocks low-confidence safety checks</li>
-            <li><strong>LLM Docstring Reviewer</strong> — optional reviewer at <code>main.py:159</code></li>
-            <li><strong>Security Agent Adapter</strong> — integrates security analysis into the workflow</li>
-            <li><strong>108 Unit Tests</strong> — broad regression coverage for the project</li>
+            <li><strong>Local Gemini Agent</strong> — generates code comments and unit tests, with an optional reviewer pass</li>
+            <li><strong>Security Hardening</strong> — treats submitted code as untrusted, limits requests, and restricts local API access</li>
+            <li><strong>Static Code Checks</strong> — detects syntax problems, undefined names, and security risks without executing submitted code</li>
+            <li><strong>Safer Fix Previews</strong> — shows reviewable, line-level suggestions and requires manual confirmation</li>
+            <li><strong>AST/CFG &amp; Complexity Analysis</strong> — reflects nested code structure in analysis and generated documentation</li>
+            <li><strong>115 Passing Unit Tests</strong> — regression coverage for the project</li>
           </ul>
         </article>
       </div>
@@ -1797,8 +1799,8 @@
       <div class="security-summary">
         <article class="summary-card">
           <h3>Test suite</h3>
-          <span class="summary-value">108 / 108</span>
-          <p>Passing pytest tests</p>
+          <span class="summary-value">115 / 115</span>
+          <p>Passing unittest cases</p>
         </article>
         <article class="summary-card">
           <h3>Security threshold</h3>
@@ -3144,7 +3146,7 @@
       document.getElementById("fix-validation").textContent = !fixedGate.passed
         ? "Review required: " + fixedGate.findings.map((finding) => finding.code).join(", ")
         : fixedReview.findings.length
-          ? "The repair is incomplete (" + fixedReview.findings.length + " issue(s) remain)."
+          ? describeRemainingFixIssues(fixedReview.findings)
           : "Checks passed. Review and manually confirm to apply.";
       document.getElementById("fix-validation").classList.toggle("needs-review", !canApply);
       prepareFixReview(canApply);
@@ -3207,6 +3209,226 @@
         button.textContent = originalLabel;
         document.getElementById("copy-tests").focus();
       }
+    }
+
+    function findUndefinedPythonNames(maskedLines) {
+      const builtins = new Set((
+        "abs all any ascii bin bool breakpoint bytearray bytes callable chr classmethod compile complex "
+        + "delattr dict dir divmod enumerate eval exec filter float format frozenset getattr globals hasattr "
+        + "hash help hex id input int isinstance issubclass iter len list locals map max memoryview min next "
+        + "object oct open ord pow print property range repr reversed round set setattr slice sorted "
+        + "staticmethod str sum super tuple type vars zip __import__ __name__ __file__ __package__ "
+        + "__debug__ __build_class__ NotImplemented Ellipsis True False None ArithmeticError "
+        + "AssertionError AttributeError BaseException BlockingIOError BrokenPipeError BufferError "
+        + "BytesWarning ChildProcessError ConnectionError DeprecationWarning EOFError Exception "
+        + "FileExistsError FileNotFoundError FloatingPointError FutureWarning GeneratorExit IOError "
+        + "ImportError ImportWarning IndentationError IndexError InterruptedError IsADirectoryError "
+        + "KeyError KeyboardInterrupt LookupError MemoryError ModuleNotFoundError NameError "
+        + "NotADirectoryError NotImplementedError OSError OverflowError PendingDeprecationWarning "
+        + "PermissionError ProcessLookupError RecursionError ReferenceError ResourceWarning RuntimeError "
+        + "RuntimeWarning StopAsyncIteration StopIteration SyntaxError SyntaxWarning SystemError "
+        + "SystemExit TabError TimeoutError TypeError UnboundLocalError UnicodeDecodeError "
+        + "UnicodeEncodeError UnicodeError UnicodeTranslateError UnicodeWarning UserWarning ValueError "
+        + "Warning ZeroDivisionError"
+      ).split(/\s+/));
+      const keywords = new Set((
+        "and as assert async await break class continue def del elif else except finally for from global "
+        + "if import in is lambda nonlocal not or pass raise return try while with yield match case"
+      ).split(/\s+/));
+      const root = {
+        type: "module",
+        indent: -1,
+        parent: null,
+        bindings: new Set(),
+        globalNames: new Set(),
+        nonlocalNames: new Set(),
+        dynamicImport: false
+      };
+      const lineScopes = [];
+      const stack = [root];
+
+      maskedLines.forEach((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          lineScopes[index] = stack[stack.length - 1];
+          return;
+        }
+        const indent = line.match(/^[ \t]*/)[0].replace(/\t/g, "    ").length;
+        while (stack.length > 1 && indent <= stack[stack.length - 1].indent) stack.pop();
+        const parent = stack[stack.length - 1];
+        lineScopes[index] = parent;
+
+        const functionHeader = trimmed.match(/^(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\((.*)\)\s*(?:->.*)?\s*:/);
+        const classHeader = trimmed.match(/^class\s+([A-Za-z_]\w*)\b/);
+        if (functionHeader) {
+          parent.bindings.add(functionHeader[1]);
+          const scope = {
+            type: "function",
+            indent,
+            parent,
+            bindings: new Set(),
+            globalNames: new Set(),
+            nonlocalNames: new Set(),
+            dynamicImport: false
+          };
+          functionHeader[2].split(",").forEach((parameter) => {
+            const name = parameter.trim().replace(/^\*+/, "").match(/^[A-Za-z_]\w*/);
+            if (name) scope.bindings.add(name[0]);
+          });
+          stack.push(scope);
+        } else if (classHeader) {
+          parent.bindings.add(classHeader[1]);
+          stack.push({
+            type: "class",
+            indent,
+            parent,
+            bindings: new Set(),
+            globalNames: new Set(),
+            nonlocalNames: new Set(),
+            dynamicImport: false
+          });
+        }
+      });
+
+      maskedLines.forEach((line, index) => {
+        const scope = lineScopes[index] || root;
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const globalDeclaration = trimmed.match(/^global\s+(.+)$/);
+        const nonlocalDeclaration = trimmed.match(/^nonlocal\s+(.+)$/);
+        if (globalDeclaration) {
+          globalDeclaration[1].split(",").forEach((name) => {
+            if (/^[A-Za-z_]\w*$/.test(name.trim())) scope.globalNames.add(name.trim());
+          });
+        } else if (nonlocalDeclaration) {
+          nonlocalDeclaration[1].split(",").forEach((name) => {
+            if (/^[A-Za-z_]\w*$/.test(name.trim())) scope.nonlocalNames.add(name.trim());
+          });
+        }
+      });
+
+      function bind(scope, name) {
+        if (scope.globalNames.has(name)) {
+          root.bindings.add(name);
+          return;
+        }
+        if (scope.nonlocalNames.has(name)) {
+          let parent = scope.parent;
+          while (parent && parent.type !== "function") parent = parent.parent;
+          if (parent) parent.bindings.add(name);
+          return;
+        }
+        scope.bindings.add(name);
+      }
+
+      maskedLines.forEach((line, index) => {
+        const scope = lineScopes[index] || root;
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        if (/^(?:async\s+)?def\b/.test(trimmed) || /^class\b/.test(trimmed)) return;
+        if (/^global\s+/.test(trimmed)) {
+          return;
+        }
+        if (/^nonlocal\s+/.test(trimmed)) {
+          return;
+        }
+
+        const fromImport = trimmed.match(/^from\s+[\w.]+\s+import\s+(.+)$/);
+        const directImport = trimmed.match(/^import\s+(.+)$/);
+        if (fromImport || directImport) {
+          const entries = (fromImport ? fromImport[1] : directImport[1])
+            .replace(/^\(|\)$/g, "")
+            .split(",");
+          entries.forEach((entry) => {
+            const parts = entry.trim().split(/\s+as\s+/);
+            const importedName = parts[parts.length - 1].trim();
+            if (importedName === "*") {
+              scope.dynamicImport = true;
+            } else if (/^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$/.test(importedName)) {
+              bind(scope, directImport && parts.length === 1
+                ? importedName.split(".")[0]
+                : importedName);
+            }
+          });
+          return;
+        }
+
+        const assignment = trimmed.match(
+          /^([A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*)\s*(?::[^=]+)?\s*(?:=|:=|\+=|-=|\*=|\/=|\/\/=|%=|\*\*=|&=|\|=|\^=|>>=|<<=)(?!=)/
+        );
+        if (assignment) {
+          assignment[1].match(/[A-Za-z_]\w*/g).forEach((name) => bind(scope, name));
+        }
+        const loopTarget = trimmed.match(/^(?:async\s+)?for\s+(.+?)\s+in\b/);
+        if (loopTarget) {
+          loopTarget[1].match(/[A-Za-z_]\w*/g).forEach((name) => bind(scope, name));
+        }
+        const aliases = trimmed.matchAll(/\bas\s+([A-Za-z_]\w*)/g);
+        for (const alias of aliases) bind(scope, alias[1]);
+        const walrusAssignments = trimmed.matchAll(/\b([A-Za-z_]\w*)\s*:=/g);
+        for (const walrus of walrusAssignments) bind(scope, walrus[1]);
+      });
+
+      function isBound(scope, name) {
+        let current = scope;
+        while (current) {
+          if (current.dynamicImport) return true;
+          if (current.globalNames.has(name)) return root.bindings.has(name);
+          if (current.nonlocalNames.has(name)) {
+            current = current.parent;
+            while (current && current.type !== "function") current = current.parent;
+            if (!current) return false;
+            if (current.bindings.has(name)) return true;
+            current = current.parent;
+            continue;
+          }
+          if (current.bindings.has(name)) return true;
+          if (current.type === "class" && scope.type === "function") {
+            current = current.parent;
+            continue;
+          }
+          current = current.parent;
+        }
+        return false;
+      }
+
+      const findings = [];
+      maskedLines.forEach((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed || /^(?:async\s+)?def\b/.test(trimmed) || /^class\b/.test(trimmed)
+          || /^(?:from|import|global|nonlocal)\b/.test(trimmed)) return;
+        const scope = lineScopes[index] || root;
+        if (scope.dynamicImport) return;
+        const lineBindings = new Set();
+        const comprehensionTargets = trimmed.matchAll(/\bfor\s+([A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*)\s+in\b/g);
+        for (const target of comprehensionTargets) {
+          target[1].match(/[A-Za-z_]\w*/g).forEach((name) => lineBindings.add(name));
+        }
+        const lambdaParameters = trimmed.matchAll(/\blambda\s+([^:]+):/g);
+        for (const lambda of lambdaParameters) {
+          lambda[1].split(",").forEach((parameter) => {
+            const name = parameter.trim().replace(/^\*+/, "").match(/^[A-Za-z_]\w*/);
+            if (name) lineBindings.add(name[0]);
+          });
+        }
+        const identifierPattern = /[A-Za-z_]\w*/g;
+        let match;
+        while ((match = identifierPattern.exec(line)) !== null) {
+          const name = match[0];
+          const before = line.slice(0, match.index).trimEnd();
+          const after = line.slice(match.index + name.length);
+          if (
+            keywords.has(name) ||
+            builtins.has(name) ||
+            lineBindings.has(name) ||
+            isBound(scope, name) ||
+            before.endsWith(".") ||
+            /^\s*(?:=|:)/.test(after)
+          ) continue;
+          findings.push({ line: index + 1, name });
+        }
+      });
+      return findings;
     }
 
     function analyzePython(source) {
@@ -3336,6 +3558,30 @@
             "Python function definitions must include parentheses after the function name.",
             { repair: "add-function-parentheses", symbol: missingFunctionParentheses[1] });
         }
+        const functionDefinition = trimmed.match(/^(?:async\s+)?def\s+([A-Za-z_]\w*)\b/);
+        if (functionDefinition && !missingFunctionParentheses && bracketDepths[index] === 0) {
+          const openingIndex = trimmed.indexOf("(", functionDefinition[0].length);
+          let closingIndex = -1;
+          let depth = 0;
+          for (let cursor = openingIndex; openingIndex !== -1 && cursor < trimmed.length; cursor += 1) {
+            if (trimmed[cursor] === "(") depth += 1;
+            else if (trimmed[cursor] === ")" && --depth === 0) {
+              closingIndex = cursor;
+              break;
+            }
+          }
+          const parameters = openingIndex === -1 || closingIndex === -1
+            ? ""
+            : trimmed.slice(openingIndex + 1, closingIndex).trim();
+          const malformedParameters = parameters === ":"
+            || /^[,=]/.test(parameters)
+            || /,\s*,/.test(parameters);
+          if (openingIndex === -1 || closingIndex === -1 || malformedParameters) {
+            const message = "SyntaxError: malformed Python function definition.";
+            addFinding(index + 1, "Syntax", message,
+              "Check the function name, balanced parameter list, and parameter syntax.", { repair: "review-syntax" });
+          }
+        }
 
         const compoundCondition = trimmed.match(/^(?:if|elif)\s+(.+)$/);
         const ternaryCondition = !/^(?:async\s+)?(?:if|elif)\b/.test(trimmed)
@@ -3408,6 +3654,17 @@
       if (firstCode && firstCode.indent > 0) {
         addFinding(firstCode.index + 1, "Indentation", "IndentationError: unexpected indent", "Top-level Python code cannot begin with indentation.", { repair: "dedent-top-level" });
       }
+
+      findUndefinedPythonNames(maskedLines).forEach(({ line, name }) => {
+        addFinding(
+          line,
+          "Runtime",
+          "NameError: name '" + name + "' is not defined",
+          "No assignment, parameter, import, or Python built-in binding for '" + name
+            + "' was found in the supplied code.",
+          { repair: "undefined-name", symbol: name }
+        );
+      });
 
       const security = evaluateSecurityGate(maskedLines.join("\n"));
       security.findings.forEach((finding) => {
@@ -3660,7 +3917,7 @@
         const validation = document.getElementById("fix-validation");
         validation.textContent = !fixedGate.passed
           ? "Review required: " + fixedGate.findings.map((finding) => finding.code).join(", ")
-          : "The repair is incomplete (" + fixedReview.findings.length + " issue(s) remain).";
+          : describeRemainingFixIssues(fixedReview.findings);
         validation.classList.add("needs-review");
         prepareFixReview(false);
         return;
@@ -4048,10 +4305,16 @@
       const indentMatches = review.sourceLines.map((line) => line.match(/^[ \t]*/)[0].replace(/\t/g, "    ").length);
       const firstIndent = indentMatches.find((indent) => indent > 0) || 4;
       const linesToReplace = new Set();
+      const standalonePrintsToRemove = new Set();
       const expectedBlockIndents = new Map();
       review.findings.forEach((finding) => {
         const index = finding.line - 1;
-        if (finding.repair === "add-function-parentheses") {
+        if (finding.repair === "undefined-name") {
+          const statement = review.maskedLines[index].trim();
+          const printCall = statement.match(/^print\s*\(\s*([A-Za-z_]\w*)\s*\)$/);
+          if (printCall && printCall[1] === finding.symbol
+            && review.sourceLines[index].trim() === statement) standalonePrintsToRemove.add(statement);
+        } else if (finding.repair === "add-function-parentheses") {
           lines[index] = lines[index].replace(
             /^(\s*(?:async\s+)?def\s+)([A-Za-z_]\w*)\s*:/,
             "$1$2():"
@@ -4153,12 +4416,34 @@
         });
       }
 
+      if (standalonePrintsToRemove.size) {
+        for (let index = lines.length - 1; index >= 0; index -= 1) {
+          if (!standalonePrintsToRemove.has(lines[index].trim())) continue;
+          lines.splice(index, 1);
+          if (index > 0 && index < lines.length && !lines[index - 1].trim() && !lines[index].trim()) {
+            lines.splice(index, 1);
+          }
+        }
+      }
+
       if (imports.size) {
         const existingImports = lines.join("\n");
         const missingImports = Array.from(imports).filter((name) => !new RegExp("^\\s*(?:import\\s+" + name + "\\b|from\\s+" + name + "\\s+import\\b)", "m").test(existingImports));
         if (missingImports.length) lines.unshift(...missingImports.map((name) => "import " + name));
       }
       return lines.join("\n");
+    }
+
+    function describeRemainingFixIssues(findings) {
+      const details = findings.map((finding) => {
+        const line = finding.line || "n/a";
+        const title = finding.title || finding.explanation || "Unresolved code issue";
+        const nextStep = finding.repair === "undefined-name"
+          ? "Define it or replace it with the intended in-scope name; no replacement was guessed."
+          : "";
+        return "Line " + line + ": " + title + (nextStep ? ". " + nextStep : "");
+      }).join(" ");
+      return "The proposed repair is incomplete (" + findings.length + " issue(s) remain). " + details;
     }
 
     function getAgentFix() {
@@ -4184,11 +4469,21 @@
       const canApply = fixedGate.passed && fixedReview.findings.length === 0;
       renderFixDiff(sourceEditor.value, proposedFix);
       const validation = document.getElementById("fix-validation");
+      const removedPrint = review.findings.find((finding) => {
+        if (finding.repair !== "undefined-name") return false;
+        const statement = review.maskedLines[finding.line - 1].trim();
+        const printCall = statement.match(/^print\s*\(\s*([A-Za-z_]\w*)\s*\)$/);
+        return printCall && printCall[1] === finding.symbol
+          && review.sourceLines[finding.line - 1].trim() === statement;
+      });
       validation.textContent = !fixedGate.passed
         ? "Review required: " + fixedGate.findings.map((finding) => finding.code).join(", ")
         : fixedReview.findings.length
-          ? "The repair is incomplete (" + fixedReview.findings.length + " issue(s) remain). Continue in the editor before applying."
-          : "Checks pass on the proposed code. Review and manually confirm to apply.";
+          ? describeRemainingFixIssues(fixedReview.findings) + " Continue in the editor before applying."
+          : removedPrint
+            ? "The proposed fix removes the standalone print of undefined name '" + removedPrint.symbol
+              + "' and therefore removes that output. Review and manually confirm to apply."
+            : "Checks pass on the proposed code. Review and manually confirm to apply.";
       validation.classList.toggle("needs-review", !canApply);
       prepareFixReview(canApply);
       openAgentDrawer("fix");
