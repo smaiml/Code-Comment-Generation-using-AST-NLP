@@ -326,7 +326,7 @@
     .ast-module { margin: 4px auto 14px; }
     .cfg-functions { display: flex; width: 100%; justify-content: center; flex-wrap: wrap; gap: 20px 28px; }
     .cfg-function-group { display: flex; min-width: 190px; flex-direction: column; align-items: center; }
-    .cfg-children { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .cfg-children { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; padding-left: 20px; border-left: 1px solid rgba(148,163,184,.45); }
     .ast-column { display: flex; min-width: 180px; flex-direction: column; gap: 8px; }
     .ast-node {
       position: relative;
@@ -469,6 +469,7 @@
       background: linear-gradient(180deg, #2d333b, #22272e);
     }
     .editor-title-group { display: flex; min-width: 0; align-items: center; gap: 9px; }
+    .editor-title-group > div { min-width: 0; }
     .editor-file-icon { display: grid; width: 23px; height: 23px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(88,166,255,.18); border-radius: 6px; background: rgba(88,166,255,.08); color: var(--blue); }
     .output-card .editor-file-icon { border-color: rgba(16,185,129,.2); background: rgba(16,185,129,.09); color: var(--green-bright); }
     .editor-file-icon svg { width: 13px; height: 13px; }
@@ -1320,7 +1321,7 @@
         </button>
       </nav>
       <div class="topbar-right">
-        <button class="backend-status" id="backend-status" type="button" aria-live="polite" title="Static demo mode. Click to check the local Python AST endpoint at http://localhost:8000/health. No source code is sent.">
+        <button class="backend-status" id="backend-status" type="button" aria-live="polite" title="Built-in demo mode. Click to check the local agent at http://127.0.0.1:8000/health. No source code is sent.">
           <span class="backend-status-dot" aria-hidden="true"></span>
           <span id="backend-status-label">⚡ Static Demo Mode</span>
         </button>
@@ -1421,7 +1422,7 @@
           </div>
         </div>
         <div class="agent-drawer-content" id="agent-fix-content" hidden>
-          <p class="fix-intro">Locally generated agent suggestion · review before applying. Green lines are additions; red lines are replaced code.</p>
+          <p class="fix-intro">Locally generated suggestion when a safe repair is available. Green lines are additions; red lines are replaced code.</p>
           <pre class="fix-diff" id="fix-diff" aria-label="Agent fix code preview"></pre>
           <p class="fix-validation" id="fix-validation"></p>
           <button class="action-button confirm-fix-review-button" id="confirm-fix-review" type="button" disabled>Confirm manual review</button>
@@ -1430,11 +1431,10 @@
       </aside>
 
       <div class="comparison">
-        <article class="editor-card" aria-labelledby="input-heading">
+        <article class="editor-card" aria-label="Original input code">
           <div class="editor-top">
             <div class="editor-title-group">
               <span class="editor-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
-              <div><div class="editor-heading" id="input-heading">Original input code</div></div>
             </div>
             <div class="editor-meta"><label class="sr-only" for="language-select">Programming language</label><select class="language-select" id="language-select" aria-label="Programming language"><option value="python">Python 3</option><option value="javascript">JavaScript (ES6)</option><option value="java">Java</option><option value="cpp">C++</option></select></div>
           </div>
@@ -1451,11 +1451,10 @@
           </div>
         </article>
 
-        <article class="editor-card output-card" aria-labelledby="output-heading">
+        <article class="editor-card output-card" aria-label="Annotated output">
           <div class="editor-top">
             <div class="editor-title-group">
               <span class="editor-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8m-8 4h8"/></svg></span>
-              <div><div class="editor-heading" id="output-heading">Annotated output</div></div>
             </div>
             <div class="editor-meta"><span class="meta-dot" aria-hidden="true"></span><span class="meta-copy" id="annotation-count">0 annotations</span><button class="action-button" id="generate-tests" type="button">Generate Unit Tests</button><button class="action-button diff-toggle" id="toggle-diff-view" type="button" aria-pressed="false">Diff View</button><button class="action-button output-copy-button" id="copy-output" type="button" aria-label="Copy output code"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copy</span></button></div>
           </div>
@@ -1804,12 +1803,12 @@
         <article class="summary-card">
           <h3>Security threshold</h3>
           <span class="summary-value blue">80%</span>
-          <p>Minimum score required to continue generation</p>
+          <p>Minimum score required before applying an automated fix</p>
         </article>
         <article class="summary-card">
-          <h3>Pre-generation gate</h3>
-          <span class="summary-value red">SEC001–004</span>
-          <p>Four illustrative rule categories evaluated before drafting</p>
+          <h3>Local security checks</h3>
+          <span class="summary-value red">SEC001–006</span>
+          <p>Analysis continues; unsafe fixes still require review</p>
         </article>
       </div>
       <div class="upgrade-grid">
@@ -1821,6 +1820,8 @@
             <div class="rule-row"><span class="rule-code">SEC002</span><span class="rule-copy"><strong>Unsafe shell invocation</strong>Subprocess calls configured with <code>shell=True</code>.</span></div>
             <div class="rule-row"><span class="rule-code">SEC003</span><span class="rule-copy"><strong>Unsafe deserialization</strong>Untrusted object loading such as <code>pickle.loads</code>.</span></div>
             <div class="rule-row"><span class="rule-code">SEC004</span><span class="rule-copy"><strong>Hardcoded credentials</strong>Credential-like variables assigned a literal secret instead of a secret store.</span></div>
+            <div class="rule-row"><span class="rule-code">SEC005</span><span class="rule-copy"><strong>Interpolated SQL</strong>SQL passed to an execution method with concatenated or interpolated input.</span></div>
+            <div class="rule-row"><span class="rule-code">SEC006</span><span class="rule-copy"><strong>Stored interpolated SQL</strong>SQL built in an f-string and later passed to an execution method.</span></div>
           </div>
         </article>
         <article class="summary-card audit-card">
@@ -2355,6 +2356,147 @@
       return { code: result.join("\n"), added, annotationCount };
     }
 
+    function applyAgentDocstring(generated, agentDocstring, source) {
+      let text = agentDocstring.trim()
+        .replace(/^```[^\n]*\n?/, "")
+        .replace(/\n?```$/, "")
+        .trim();
+      if ((text.startsWith('"""') || text.startsWith("'''")) && text.length >= 6) text = text.slice(3);
+      if ((text.endsWith('"""') || text.endsWith("'''")) && text.length >= 3) text = text.slice(0, -3);
+      const complexity = analyzeComplexity(source);
+      const docLines = text.split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => !/^complexity\s*:/i.test(line));
+      while (docLines.length && !docLines[0]) docLines.shift();
+      while (docLines.length && !docLines[docLines.length - 1]) docLines.pop();
+      if (!docLines.length) docLines.push("Documentation for the supplied code.");
+      const safeDocLines = docLines.map((line) => currentLanguage === "python"
+        ? line.replace(/"""/g, '\\"\\"\\"')
+        : line.replace(/\*\//g, "* /"));
+      docLines.splice(0, docLines.length, ...safeDocLines);
+      docLines.push("", "Complexity: Time " + complexity.time + "; Space " + complexity.space + ".");
+
+      const codeLines = generated.code.split("\n");
+      const addedLines = Array.from(generated.added).sort((left, right) => left - right);
+      const hasGeneratedBlock = addedLines.length > 0;
+      let start = hasGeneratedBlock ? addedLines[0] : 0;
+      if (!hasGeneratedBlock && currentLanguage === "python" && codeLines[0].startsWith("#!")) start = 1;
+      let end = hasGeneratedBlock ? start : start - 1;
+      while (hasGeneratedBlock && generated.added.has(end + 1)) end += 1;
+      const indent = hasGeneratedBlock ? (codeLines[start].match(/^\s*/)[0]) : "";
+      let replacement;
+      if (currentLanguage === "python") {
+        replacement = [indent + '"""' + docLines[0]]
+          .concat(docLines.slice(1).map((line) => indent + line))
+          .concat([indent + '"""']);
+      } else if (currentLanguage === "cpp") {
+        replacement = docLines.map((line) => indent + "/// " + line);
+      } else {
+        replacement = [indent + "/**"]
+          .concat(docLines.map((line) => indent + " * " + line))
+          .concat([indent + " */"]);
+      }
+
+      const updatedAdded = new Set();
+      generated.added.forEach((lineNumber) => {
+        if (lineNumber < start) updatedAdded.add(lineNumber);
+        else if (lineNumber > end) updatedAdded.add(lineNumber + replacement.length - (end - start + 1));
+      });
+      replacement.forEach((line, index) => updatedAdded.add(start + index));
+      codeLines.splice(start, end - start + 1, ...replacement);
+      return {
+        code: codeLines.join("\n"),
+        added: updatedAdded,
+        annotationCount: generated.annotationCount + (hasGeneratedBlock ? 0 : 1)
+      };
+    }
+
+    async function requestLocalAgent(mode, source, runReviewer) {
+      if (typeof source !== "string" || !source.trim()) {
+        throw new Error("Enter code before requesting local-agent analysis.");
+      }
+      if (source.length > 100000) {
+        throw new Error("Code exceeds the local agent's 100,000-character limit.");
+      }
+      const complexity = analyzeComplexity(source);
+      const gateFindings = evaluateSecurityGate(source).findings;
+      const reviewFindings = analyzeCode(source).findings;
+      const securityHints = gateFindings.map((finding) => finding.code + ": " + finding.message)
+        .concat(reviewFindings.map((finding) =>
+          (finding.code || finding.category || "Review") + ": " + (finding.explanation || finding.message || finding.title)
+        )).slice(0, 100).map((hint) => hint.slice(0, 1000));
+      const styleSelect = document.getElementById("persona-select");
+      const style = styleSelect.options[styleSelect.selectedIndex].textContent.trim();
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 90000);
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/agent", {
+          method: "POST",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({
+            code: source,
+            language: currentLanguage,
+            mode,
+            style,
+            complexity: { time: complexity.time, space: complexity.space },
+            security_hints: securityHints,
+            run_reviewer: Boolean(runReviewer)
+          }),
+          signal: controller.signal
+        });
+        const responseText = await response.text();
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch {
+          throw new Error("The local agent returned an invalid JSON response.");
+        }
+        if (!response.ok) {
+          const errorMessage = response.status === 413
+            ? "The request exceeds the local agent's size limit."
+            : response.status === 422
+              ? "The local agent rejected an invalid or oversized request."
+              : response.status === 503
+                ? "The local agent is not configured."
+                : "The local agent request failed.";
+          throw new Error(errorMessage);
+        }
+        if (!result || typeof result.docstring !== "string"
+          || !Array.isArray(result.security_findings)
+          || typeof result.unit_tests !== "string"
+          || typeof result.reviewer_notes !== "string") {
+          throw new Error("The local agent response did not match the expected schema.");
+        }
+        return result;
+      } catch (error) {
+        if (controller.signal.aborted) throw new Error("The local agent request timed out.");
+        if (error instanceof TypeError) {
+          throw new Error("The local agent server is unavailable.");
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    }
+
+    function displayAgentFeedback(result, localFindings) {
+      const findings = (localFindings || []).slice();
+      if (result) findings.push(...result.security_findings.map((finding) => ({
+        line: finding.line || "n/a",
+        category: "Security",
+        title: (finding.severity || "Potential") + ": " + (finding.issue || "Potential security issue"),
+        explanation: finding.fix ? "Suggested fix: " + finding.fix : "Review this potential security issue."
+      })));
+      if (findings.length) showAgentFindings(findings);
+      if (reviewerEnabled && result && result.reviewer_notes) {
+        const reviewerState = document.getElementById("reviewer-metric-state");
+        reviewerState.textContent = "Reviewed";
+        reviewerState.title = result.reviewer_notes;
+      }
+    }
+
     function renderGutter(element, lineNumbers) {
       element.innerHTML = lineNumbers.map((lineNumber) => "<span>" + lineNumber + "</span>").join("");
     }
@@ -2473,13 +2615,17 @@
       return rows;
     }
 
-    function refreshPreview(status) {
+    function refreshPreview(status, agentResult, allowFlaggedSource) {
       const gate = evaluateSecurityGate(sourceEditor.value);
       const codeReview = analyzeCode(sourceEditor.value);
       const canGenerate = gate.passed && codeReview.findings.length === 0;
-      const generated = canGenerate
+      const canAnnotate = canGenerate || Boolean(allowFlaggedSource);
+      let generated = canAnnotate
         ? generateLanguageComments(sourceEditor.value)
         : { code: sourceEditor.value, added: new Set(), annotationCount: 0 };
+      if (canAnnotate && agentResult && agentResult.docstring) {
+        generated = applyAgentDocstring(generated, agentResult.docstring, sourceEditor.value);
+      }
       outputCode = generated.code;
       annotationTotal = generated.annotationCount;
       addedLineNumbers.clear();
@@ -2531,6 +2677,11 @@
           code: "SEC005",
           message: "Potential SQL injection through concatenated or interpolated user input.",
           pattern: /\b(?:execute|executemany|query)\s*\([^)]*(?:\+|f["']|%\s*[A-Za-z_(])[^)]*\)/
+        },
+        {
+          code: "SEC006",
+          message: "SQL built with an interpolated f-string is later executed; use a parameterized query.",
+          pattern: /^[ \t]*([A-Za-z_]\w*)\s*=\s*f["'][^\r\n]*\b(?:SELECT|INSERT|UPDATE|DELETE)\b[^\r\n]*\r?\n[\s\S]{0,1000}?\b(?:[A-Za-z_]\w*\.)?(?:execute|executemany)\s*\(\s*\1\b/im
         }
       ];
       const normalizedSource = source.replace(/\r\n?/g, "\n");
@@ -2547,91 +2698,253 @@
       return { findings, score, passed: score >= 80 };
     }
 
-    function analyzeComplexity(source) {
+    function buildCodeStructure(source) {
       const lines = source.replace(/\r\n?/g, "\n").split("\n");
-      let indentationDepth = 0;
-      let maxNestedLoops = 0;
-      let loopDepth = 0;
-      let recursion = false;
-      let functionNames = new Set();
-      const functionPattern = currentLanguage === "python"
-        ? /(?:def)\s+([A-Za-z_$]\w*)/
-        : /(?:function\s+([A-Za-z_$]\w*)|(?:public\s+)?(?:static\s+)?[\w:*&<>]+\s+([A-Za-z_$]\w*)\s*\()/;
+      const python = currentLanguage === "python";
+      const nodes = [{
+        id: "module", type: "module", label: "Source Module", detail: "Program / Compilation Unit",
+        expression: "Program / Compilation Unit", scope: "global", line: 1,
+        startLine: 1, endLine: lines.length, parentId: null, children: []
+      }];
+      const blockStack = [];
+      let pendingBlockNode = null;
+      let cyclomatic = 1;
 
-      lines.forEach((line) => {
-        const match = line.match(functionPattern);
-        if (match) functionNames.add(match[1] || match[2] || "");
-      });
-      lines.forEach((line) => {
-        const trimmed = line.trim();
+      function addNode(type, expression, lineNumber, parent) {
+        const functionMatch = expression.match(/^(?:async\s+)?def\s+([A-Za-z_$]\w*)|^(?:export\s+)?(?:async\s+)?function\s*([A-Za-z_$]\w*)|^(?:const|let|var)\s+([A-Za-z_$]\w*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$]\w*)\s*=>/);
+        const classMatch = expression.match(/^(class|struct)\s+([A-Za-z_$]\w*)/);
+        const methodMatch = expression.match(/^(?:public|private|protected|static|[\w:*&<>]+\s+)+([A-Za-z_$]\w*)\s*\((.*?)\)/);
+        const jsMethodMatch = currentLanguage === "javascript"
+          ? expression.match(/^(?:async\s+)?(?:get\s+|set\s+)?([A-Za-z_$]\w*)\s*\((.*?)\)/) : null;
+        const name = functionMatch ? functionMatch[1] || functionMatch[2] || functionMatch[3]
+          : classMatch ? classMatch[2] : methodMatch ? methodMatch[1] : jsMethodMatch ? jsMethodMatch[1] : "";
+        const nodeScope = type === "function" || type === "class" ? name : parent.scope || "global";
+        const label = type === "function"
+          ? (python ? "def " : "function ") + name + "(...)"
+          : type === "loop" ? "loop"
+          : type === "branch" ? (/^(?:else|elif|except|finally)\b/.test(expression) ? expression.split(/[\s(:]/)[0] : "branch")
+          : type === "class" ? (classMatch ? classMatch[1] : "class") + " " + name
+          : type === "return" ? "return / throw"
+          : expression.replace(/[{};]\s*$/, "").slice(0, 70) || "block";
+        const parameters = expression.match(/\((.*?)\)/);
+        const node = {
+          id: "node-" + nodes.length, type, label,
+          detail: type === "function" ? (parameters && parameters[1] || "no parameters") : expression.slice(0, 70),
+          expression, name, scope: nodeScope, line: lineNumber,
+          startLine: lineNumber, endLine: lineNumber, parentId: parent.id, children: []
+        };
+        nodes.push(node);
+        parent.children.push(node.id);
+        if (type === "branch" || type === "loop") cyclomatic += 1;
+        return node;
+      }
+
+      function popBlock(endLine) {
+        const frame = blockStack.pop();
+        if (frame) frame.node.endLine = Math.max(frame.node.startLine, endLine);
+      }
+
+      lines.forEach((line, lineIndex) => {
+        const lineNumber = lineIndex + 1;
+        const indent = (line.match(/^[\t ]*/)[0] || "").replace(/\t/g, "    ").length;
+        const withoutStrings = line.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, "");
+        const code = withoutStrings.replace(python ? /#.*$/ : /\/\/.*$/, "");
+        let blockCode = code;
+        let trimmed = code.trim();
         if (!trimmed) return;
-        if (currentLanguage === "python") {
-          const indent = (line.match(/^\s*/)[0].length);
-          if (/^(?:for\b|while\b)/.test(trimmed)) {
-            loopDepth = 1 + indentationDepth;
-            maxNestedLoops = Math.max(maxNestedLoops, indent > 0 ? loopDepth : 1);
-          } else if (!/^\s/.test(line) && loopDepth) {
-            loopDepth = 0;
+
+        if (python) {
+          while (blockStack.length && indent <= blockStack[blockStack.length - 1].indent) popBlock(lineNumber - 1);
+        } else {
+          while (blockStack.length && blockStack[blockStack.length - 1].kind === "indent"
+            && indent <= blockStack[blockStack.length - 1].indent) popBlock(lineNumber - 1);
+          const leadingClosers = trimmed.match(/^(?:}\s*)+/);
+          if (leadingClosers) {
+            const closeCount = (leadingClosers[0].match(/}/g) || []).length;
+            for (let count = 0; count < closeCount && blockStack.length; count += 1) popBlock(lineNumber);
+            trimmed = trimmed.slice(leadingClosers[0].length).trim();
+            blockCode = code.replace(/^\s*(?:}\s*)+/, "");
           }
-        } else if (/\b(?:for|while)\s*\(/.test(trimmed)) {
-          loopDepth += 1;
-          maxNestedLoops = Math.max(maxNestedLoops, loopDepth);
         }
-        functionNames.forEach((name) => {
-          if (name && new RegExp("\\b" + name + "\\s*\\(").test(trimmed) && /(?:def\s+\w|function\s+\w|[A-Za-z_*&:<>]+\s+\w+\s*\([^)]*\)\s*\{)/.test(line) === false) {
-            recursion = true;
-          }
-        });
-        if (/\b(?:map|filter|sort|sorted|append|push_back|push)\b/.test(trimmed)) indentationDepth += 0;
+        if (trimmed === "{" && pendingBlockNode) {
+          blockStack.push({ node: pendingBlockNode, indent, kind: "brace" });
+          pendingBlockNode = null;
+          return;
+        }
+        if (!trimmed || trimmed === "{" || trimmed === "}") return;
+        pendingBlockNode = null;
+
+        const parent = blockStack.length ? blockStack[blockStack.length - 1].node : nodes[0];
+        const functionHeader = python
+          ? /^(?:async\s+)?def\s+[A-Za-z_$]\w*\s*\(/.test(trimmed)
+          : /^(?:export\s+)?(?:async\s+)?function\s*[A-Za-z_$]*\s*\(|^(?:const|let|var)\s+[A-Za-z_$]\w*\s*=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$]\w*)\s*=>/.test(trimmed)
+            || /^(?:public|private|protected|static|[\w:*&<>]+\s+)+[A-Za-z_$]\w*\s*\([^;]*\)\s*(?:const\s*)?(?:\{|$)/.test(trimmed)
+            || (currentLanguage === "javascript"
+              && /^(?:async\s+)?(?:get\s+|set\s+)?[A-Za-z_$]\w*\s*\([^;]*\)\s*(?:\{|$)/.test(trimmed)
+              && !/^(?:if|for|while|switch|catch|with)\b/.test(trimmed));
+        const classHeader = /^(?:class|struct)\s+[A-Za-z_$]\w*/.test(trimmed);
+        const loopHeader = /^(?:for|while)\b/.test(trimmed) || /\b(?:for|while)\s*\(/.test(trimmed);
+        const branchHeader = /^(?:if|else\b|elif\b|switch\b|case\b|try\b|catch\b|except\b|finally\b|match\b)\b/.test(trimmed)
+          || /\b(?:if|else\s+if|switch|catch)\s*\(/.test(trimmed);
+        const returnHeader = /^(?:return\b|throw\b)/.test(trimmed) || /\b(?:return|throw)\b/.test(trimmed);
+        const type = functionHeader ? "function" : classHeader ? "class"
+          : loopHeader ? "loop" : branchHeader ? "branch"
+          : returnHeader ? "return" : "statement";
+        const node = addNode(type, trimmed, lineNumber, parent);
+        const opensBlock = python
+          ? /:\s*(?:#.*)?$/.test(trimmed) && ["function", "class", "loop", "branch"].includes(type)
+          : (blockCode.match(/{/g) || []).length > (blockCode.match(/}/g) || []).length;
+
+        if (python && opensBlock) {
+          blockStack.push({ node, indent, kind: "indent" });
+        } else if (!python && (blockCode.match(/{/g) || []).length) {
+          const openCount = (blockCode.match(/{/g) || []).length;
+          const closeCount = (blockCode.match(/}/g) || []).length;
+          for (let count = 0; count < openCount; count += 1) blockStack.push({ node, indent, kind: "brace" });
+          for (let count = 0; count < closeCount; count += 1) popBlock(lineNumber);
+        } else if (!python && (type === "loop" || type === "branch")
+          && /^(?:for|while|if|else|switch|case|try|catch)\b/.test(trimmed)) {
+          blockStack.push({ node, indent, kind: "indent" });
+        }
+        if (!python && (type === "function" || type === "class" || type === "loop" || type === "branch")
+          && !/\{/.test(blockCode)) pendingBlockNode = node;
       });
-      const nested = Math.max(0, maxNestedLoops);
-      const time = recursion ? "O(n)" : nested >= 3 ? "O(n^3)" : nested === 2 ? "O(n^2)" : nested === 1 ? "O(n)" : "O(1)";
+
+      let lastCodeLine = lines.length;
+      while (lastCodeLine > 1 && !lines[lastCodeLine - 1].trim()) lastCodeLine -= 1;
+      while (blockStack.length) popBlock(lastCodeLine);
+      return { nodes, cyclomatic };
+    }
+
+    function analyzeComplexity(source) {
+      const structure = buildCodeStructure(source);
+      const sourceLines = source.replace(/\r\n?/g, "\n").split("\n");
+      const nodeById = new Map(structure.nodes.map((node) => [node.id, node]));
+      let nestedLoops = 0;
+      let recursion = false;
+      const functionNames = structure.nodes.filter((node) => node.type === "function").map((node) => node.name).filter(Boolean);
+
+      function factorsForLoop(node) {
+        const expression = node.expression;
+        let bound = "";
+        const range = expression.match(/\brange\s*\(([^)]*)\)/);
+        const iterable = expression.match(/\b(?:in|of)\s+([^:;{)]+)/);
+        if (range) {
+          const argumentsList = range[1].split(",");
+          bound = argumentsList[argumentsList.length - 1];
+        } else if (iterable) {
+          bound = iterable[1];
+        } else {
+          const condition = expression.match(/(?:;|while\s*\(|while\s+)([^;:)]+?)\s*(?:<|<=|>|>=)\s*([^;:)]+)/);
+          if (condition) {
+            const left = condition[1].trim();
+            const right = condition[2].trim();
+            bound = /^\d+(?:\.\d+)?$/.test(right) ? left : right;
+            if (/^\d+(?:\.\d+)?$/.test(bound)) bound = "";
+          } else {
+            bound = "n";
+          }
+        }
+        const names = (bound.match(/[A-Za-z_$]\w*/g) || [])
+          .filter((name) => !/^(?:range|len|int|float|size|sizeof|const|let|var|auto|in|of)$/i.test(name))
+          .map((name) => /^m$/i.test(name) ? "m" : /^n$/i.test(name) ? "n" : "n");
+        let factors = Array.from(new Set(names));
+        if (!factors.length && bound && !/\d/.test(bound)) factors = ["n"];
+
+        function loopBody(current) {
+          const statements = [];
+          current.children.forEach((childId) => {
+            const child = nodeById.get(childId);
+            if (!child || child.type === "loop" || child.type === "function" || child.type === "class") return;
+            statements.push(child.expression);
+            statements.push(loopBody(child));
+          });
+          return statements.join("\n");
+        }
+
+        const body = loopBody(node);
+        const loopHeader = /^(?:while\b|\bwhile\s*\()/.test(expression);
+        const multiplicativeUpdate = /(?:^|\n)\s*(?:(?:let|const|var)\s+)?[A-Za-z_$]\w*\s*(?:(?:\/\/=|\/=|\*=)\s*(?:2|[3-9]\d*)\b|(?:>>=|<<=)\s*1\b)/.test(body)
+          || /(?:^|\n)\s*(?:(?:let|const|var)\s+)?([A-Za-z_$]\w*)\s*=\s*[^;\n]*\b\1\s*(?:(?:\/\/|\/|\*)\s*(?:2|[3-9]\d*)\b|(?:>>|<<)\s*1\b)/.test(body);
+        const headerUpdate = /(?:(?:\/\/=|\/=|\*=)\s*(?:2|[3-9]\d*)\b|(?:>>=|<<=)\s*1\b)|=\s*[A-Za-z_$]\w*\s*(?:(?:\/\/|\/|\*)\s*(?:2|[3-9]\d*)\b|(?:>>|<<)\s*1\b)/.test(expression);
+        const midpoint = body.match(/(?:^|\n)\s*(?:(?:let|const|var)\s+)?([A-Za-z_$]\w*)\s*=\s*[^;\n]*(?:\/\/\s*2|\/\s*2|>>\s*1)\b/);
+        const midpointName = midpoint && midpoint[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const binarySearchUpdate = loopHeader && midpointName
+          && new RegExp("(?:^|\\n)\\s*(?:(?:let|const|var)\\s+)?[A-Za-z_$]\\w*\\s*=\\s*[^;\\n]*\\b" + midpointName + "\\s*[+-]\\s*1\\b").test(body);
+        if (headerUpdate || (loopHeader && (multiplicativeUpdate || binarySearchUpdate))) {
+          return ["log(" + (factors[0] || "n") + ")"];
+        }
+        return factors;
+      }
+
+      const terms = [];
+      function visit(node, loopFactors, loopDepth) {
+        let factors = loopFactors;
+        let depth = loopDepth;
+        if (node.type === "loop") {
+          factors = loopFactors.concat(factorsForLoop(node));
+          depth += 1;
+          nestedLoops = Math.max(nestedLoops, depth);
+          if (factors.length) terms.push(factors);
+        }
+        if (node.type === "function" && functionNames.includes(node.name)) {
+          const escapedName = node.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const calls = new RegExp("\\b" + escapedName + "\\s*\\(", "g");
+          const body = sourceLines.slice(node.startLine, node.endLine).join("\n");
+          if (calls.test(body)) recursion = true;
+        }
+        node.children.forEach((childId) => {
+          const child = nodeById.get(childId);
+          if (child) visit(child, factors, depth);
+        });
+      }
+      visit(structure.nodes[0], [], 0);
+      if (recursion) terms.push(["n"]);
+
+      const monomials = terms.map((factors) => factors.reduce((counts, factor) => {
+        counts[factor] = (counts[factor] || 0) + 1;
+        return counts;
+      }, {}));
+      const uniqueTerms = monomials.filter((term, index) => !monomials.slice(0, index).some((other) =>
+        Object.keys(term).length === Object.keys(other).length
+          && Object.keys(term).every((factor) => term[factor] === other[factor])
+      ));
+      const maximalTerms = uniqueTerms.filter((term, index) => !uniqueTerms.some((other, otherIndex) =>
+        index !== otherIndex && ["n", "m"].every((factor) => (other[factor] || 0) >= (term[factor] || 0))
+          && (
+            ["n", "m"].some((factor) => (other[factor] || 0) > (term[factor] || 0))
+            || (
+              ["n", "m"].every((factor) => (other[factor] || 0) === (term[factor] || 0))
+              && Object.keys(other).filter((factor) => factor.startsWith("log("))
+                .reduce((count, factor) => count + other[factor], 0)
+                > Object.keys(term).filter((factor) => factor.startsWith("log("))
+                  .reduce((count, factor) => count + term[factor], 0)
+            )
+          )
+      ));
+      const formatTerm = (term) => {
+        const polynomial = Object.keys(term).filter((factor) => !factor.startsWith("log("))
+          .sort((left, right) => left === "n" ? -1 : right === "n" ? 1 : left.localeCompare(right))
+          .map((factor) => term[factor] === 1 ? factor : factor + "^" + term[factor]);
+        const logarithmic = Object.keys(term).filter((factor) => factor.startsWith("log("))
+          .sort()
+          .map((factor) => {
+            const variable = factor.slice(4, -1);
+            return (term[factor] === 1 ? "log " : "log^" + term[factor] + " ") + variable;
+          });
+        return polynomial.join("*") + (polynomial.length && logarithmic.length ? " " : "") + logarithmic.join("*");
+      };
+      const time = maximalTerms.length
+        ? "O(" + maximalTerms.map(formatTerm).sort().join(" + ") + ")"
+        : "O(1)";
       const allocates = /\b(?:\[\]|new\s+|append|push_back|push\(|\.{2,}|create|list|dict|map|set)\b/i.test(source);
-      const recursionSpace = recursion ? "O(n)" : "O(1)";
-      const space = allocates && nested === 0 ? "O(n)" : nested > 0 ? "O(n)" : recursionSpace;
-      return { time, space, nestedLoops: nested, recursion };
+      const space = allocates || nestedLoops > 0 || recursion ? "O(n)" : "O(1)";
+      return { time, space, nestedLoops, recursion };
     }
 
     function getAstGraph(source) {
-      const lines = source.replace(/\r\n?/g, "\n").split("\n");
-      const nodes = [];
-      let nodeCount = 1;
-      let cyclomatic = 1;
-      let currentFunction = "Module";
-      lines.forEach((line, lineIndex) => {
-        const trimmed = line.trim();
-        let match;
-        if (currentLanguage === "python" && (match = trimmed.match(/^def\s+([A-Za-z_$]\w*)\s*\((.*?)\)/))) {
-          currentFunction = match[1];
-          nodes.push({ type: "function", label: "def " + match[1] + "(...)", detail: match[2] || "no parameters", expression: match[0], scope: match[1], line: lineIndex + 1 });
-          nodeCount += 1;
-        } else if (currentLanguage === "javascript" && (match = trimmed.match(/^(?:function\s+)?([A-Za-z_$]\w*)\s*\((.*?)\)\s*\{/))) {
-          currentFunction = match[1];
-          nodes.push({ type: "function", label: "function " + match[1] + "(...)", detail: match[2] || "no parameters", expression: match[0], scope: match[1], line: lineIndex + 1 });
-          nodeCount += 1;
-        } else if (trimmed.match(/^(?:public|private|protected|static|[\w:*&<>]+\s+)+([A-Za-z_$]\w*)\s*\((.*?)\)\s*(?:const\s*)?\{/)) {
-          match = trimmed.match(/([A-Za-z_$]\w*)\s*\((.*?)\)\s*(?:const\s*)?\{/);
-          if (match) {
-            currentFunction = match[1];
-            nodes.push({ type: "function", label: match[1] + "(...)", detail: match[2] || "no parameters", expression: match[0], scope: "class/global", line: lineIndex + 1 });
-            nodeCount += 1;
-          }
-        }
-        if (/^(?:if|else\s+if|elif)\b/.test(trimmed) || /\b(?:if|else\s+if)\s*\(/.test(trimmed)) {
-          nodes.push({ type: "branch", label: trimmed.startsWith("else") ? "else" : "if / elif", detail: trimmed.slice(0, 70), expression: trimmed, scope: currentFunction, line: lineIndex + 1 });
-          cyclomatic += 1;
-          nodeCount += 1;
-        } else if (/^(?:for|while)\b/.test(trimmed) || /\b(?:for|while)\s*\(/.test(trimmed)) {
-          nodes.push({ type: "loop", label: "loop", detail: trimmed.slice(0, 70), expression: trimmed, scope: currentFunction, line: lineIndex + 1 });
-          cyclomatic += 1;
-          nodeCount += 1;
-        } else if (/^(?:return\b|throw\b)/.test(trimmed) || /\b(?:return|throw)\b/.test(trimmed)) {
-          nodes.push({ type: "return", label: "return / throw", detail: trimmed.slice(0, 70), expression: trimmed, scope: currentFunction, line: lineIndex + 1 });
-          nodeCount += 1;
-        }
-      });
-      if (!nodes.length) nodes.push({ type: "return", label: "Module", detail: "No named control node detected", expression: "source module", scope: "global", line: 1 });
-      return { nodes, cyclomatic, nodeCount };
+      const structure = buildCodeStructure(source);
+      return { nodes: structure.nodes, cyclomatic: structure.cyclomatic, nodeCount: structure.nodes.length };
     }
 
     function selectAstNode(node, element) {
@@ -2648,7 +2961,9 @@
         type === "return" ? "Return / Throw" : "ASTNode";
       document.getElementById("inspector-expression").textContent = node.expression || node.detail || "Not available";
       document.getElementById("inspector-scope").textContent = node.scope || "global";
-      document.getElementById("inspector-line").textContent = node.line === undefined ? "—" : String(node.line);
+      document.getElementById("inspector-line").textContent = node.startLine === undefined
+        ? node.line === undefined ? "—" : String(node.line)
+        : node.startLine === node.endLine ? String(node.startLine) : node.startLine + "–" + node.endLine;
       const expression = node.expression || node.detail || "";
       const tokens = expression.trim()
         ? expression.replace(/[^\w$]+/g, " ").trim().split(/\s+/).slice(0, 8).join(", ")
@@ -2707,42 +3022,27 @@
       }, moduleNode));
       flow.appendChild(moduleNode);
 
-      const functions = graph.nodes.filter((node) => node.type === "function");
-      const controls = graph.nodes.filter((node) => node.type !== "function");
-      const functionGroups = document.createElement("div");
-      functionGroups.className = "cfg-functions";
-      const renderedFunctions = functions.length ? functions : [{ type: "function", label: "Module Scope", detail: "No named function", expression: "module scope", scope: "global", line: 1 }];
-
-      renderedFunctions.forEach((fn, functionIndex) => {
-        const group = document.createElement("div");
-        group.className = "cfg-function-group";
-        const fnId = "function-" + functionIndex;
-        const fnNode = document.createElement("div");
-        fnNode.className = "ast-node function";
-        fnNode.dataset.nodeId = fnId;
-        fnNode.dataset.parent = "module";
-        fnNode.innerHTML = "<strong>" + escapeHtml(fn.label) + "</strong><small>" + escapeHtml(fn.detail || "no parameters") + "</small>";
-        fnNode.addEventListener("click", () => selectAstNode(fn, fnNode));
-        group.appendChild(fnNode);
-
-        const children = controls.filter((node) => !fn.scope || node.scope === fn.scope || fn.type !== "function");
-        if (children.length) {
-          const childRow = document.createElement("div");
-          childRow.className = "cfg-children";
-          children.forEach((node, nodeIndex) => {
-            const child = document.createElement("div");
-            child.className = "ast-node " + node.type;
-            child.dataset.nodeId = fnId + "-child-" + nodeIndex;
-            child.dataset.parent = fnId;
-            child.innerHTML = "<strong>" + escapeHtml(node.label) + "</strong><small>" + escapeHtml(node.detail) + "</small>";
-            child.addEventListener("click", () => selectAstNode(node, child));
-            childRow.appendChild(child);
-          });
-          group.appendChild(childRow);
-        }
-        functionGroups.appendChild(group);
-      });
-      flow.appendChild(functionGroups);
+      const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+      function renderChildren(parent, container) {
+        if (!parent.children.length) return;
+        const children = document.createElement("div");
+        children.className = "cfg-children";
+        parent.children.forEach((childId) => {
+          const node = nodeById.get(childId);
+          if (!node) return;
+          const element = document.createElement("div");
+          element.className = "ast-node " + node.type;
+          element.dataset.nodeId = node.id;
+          element.dataset.parent = node.parentId;
+          element.innerHTML = "<strong>" + escapeHtml(node.label) + "</strong><small>"
+            + escapeHtml(node.detail || "") + " · L" + node.startLine + "–" + node.endLine + "</small>";
+          element.addEventListener("click", () => selectAstNode(node, element));
+          children.appendChild(element);
+          renderChildren(node, children);
+        });
+        container.appendChild(children);
+      }
+      renderChildren(graph.nodes[0], flow);
       tree.appendChild(flow);
       window.requestAnimationFrame(() => drawAstConnections());
 
@@ -2877,11 +3177,36 @@
     }
 
     let generatedTests = "";
-    function openGeneratedTests() {
-      generatedTests = generateUnitTests(sourceEditor.value);
-      document.getElementById("test-output").textContent = generatedTests;
+    async function openGeneratedTests() {
+      const source = sourceEditor.value;
+      const localTests = generateUnitTests(source);
+      const button = document.getElementById("generate-tests");
+      const testOutput = document.getElementById("test-output");
+      const originalLabel = button.textContent;
+      generatedTests = localTests;
+      testOutput.textContent = "Generating unit tests with the local agent…";
       document.getElementById("test-modal").hidden = false;
-      document.getElementById("copy-tests").focus();
+      button.disabled = true;
+      button.textContent = "Generating…";
+      document.getElementById("output-status").textContent = "Generating unit tests…";
+
+      try {
+        const result = await requestLocalAgent("unit_tests", source, reviewerEnabled);
+        if (!result.unit_tests.trim()) throw new Error("The local agent returned no unit tests.");
+        generatedTests = result.unit_tests;
+        displayAgentFeedback(result);
+        document.getElementById("output-status").textContent = "Unit tests generated by the local agent";
+        if (result.reviewer_notes) showToast("LLM review complete · " + result.reviewer_notes);
+        else showToast("Unit tests generated by the local agent");
+      } catch (error) {
+        document.getElementById("output-status").textContent = "Local unit-test fallback";
+        showToast("Local agent unavailable; using built-in tests. " + error.message);
+      } finally {
+        testOutput.textContent = generatedTests;
+        button.disabled = false;
+        button.textContent = originalLabel;
+        document.getElementById("copy-tests").focus();
+      }
     }
 
     function analyzePython(source) {
@@ -2921,6 +3246,12 @@
               else if (character === "\\") escaped = true;
               else if (character === quote) quote = null;
             }
+            continue;
+          }
+          const stringPrefix = line.slice(index).match(/^(?:[fF][rR]|[rR][fF]|[bB][rR]|[rR][bB]|[fFrRuUbB])(?=["'])/);
+          if (stringPrefix) {
+            masked += " ".repeat(stringPrefix[0].length);
+            index += stringPrefix[0].length - 1;
             continue;
           }
           if (character === "#") {
@@ -3077,51 +3408,6 @@
       if (firstCode && firstCode.indent > 0) {
         addFinding(firstCode.index + 1, "Indentation", "IndentationError: unexpected indent", "Top-level Python code cannot begin with indentation.", { repair: "dedent-top-level" });
       }
-
-      const pythonWords = new Set(("and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield match case True False None").split(" "));
-      const builtinNames = new Set(("__name__ __file__ abs all any bool bytearray bytes callable chr classmethod compile complex dict dir divmod enumerate eval exec filter float format frozenset getattr hasattr hash help hex id input int isinstance issubclass iter len list map max memoryview min next object oct open ord pow print property range repr reversed round set slice sorted staticmethod str sum super tuple type vars zip ValueError TypeError RuntimeError IndexError KeyError NameError ZeroDivisionError OverflowError Exception NotImplementedError").split(" "));
-      const declared = new Set(builtinNames);
-      pythonWords.forEach((word) => declared.add(word));
-      maskedLines.forEach((line) => {
-        let match;
-        match = line.match(/^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\((.*?)\)/);
-        if (match) {
-          declared.add(match[1]);
-          const parameterPattern = /(?:^|,)\s*\*{0,2}\s*([A-Za-z_]\w*)/g;
-          let parameter;
-          while ((parameter = parameterPattern.exec(match[2])) !== null) declared.add(parameter[1]);
-        }
-        match = line.match(/^\s*class\s+([A-Za-z_]\w*)/);
-        if (match) declared.add(match[1]);
-        match = line.match(/^\s*import\s+(.+)/);
-        if (match) match[1].split(",").forEach((part) => declared.add((part.trim().match(/(?:^|\s+as\s+)([A-Za-z_]\w*)/) || [null, part.trim().split(".")[0]])[1]));
-        match = line.match(/^\s*from\s+\S+\s+import\s+(.+)/);
-        if (match) match[1].split(",").forEach((part) => declared.add((part.trim().match(/(?:^|\s+as\s+)([A-Za-z_]\w*)/) || [null, part.trim()])[1]));
-        const assignmentPattern = /(?:^|[;])\s*([A-Za-z_]\w*)\s*(?::[^=]+)?=(?!=)/g;
-        let assignment;
-        while ((assignment = assignmentPattern.exec(line)) !== null) declared.add(assignment[1]);
-        const loopPattern = /\bfor\s+([A-Za-z_]\w*)\s+in\b/g;
-        let loop;
-        while ((loop = loopPattern.exec(line)) !== null) declared.add(loop[1]);
-        const exceptionAlias = line.match(/\bexcept\b.*\bas\s+([A-Za-z_]\w*)/);
-        if (exceptionAlias) declared.add(exceptionAlias[1]);
-        const lambdaPattern = /\blambda\s+([A-Za-z_]\w*)/g;
-        let lambda;
-        while ((lambda = lambdaPattern.exec(line)) !== null) declared.add(lambda[1]);
-      });
-
-      maskedLines.forEach((line, index) => {
-        if (/^\s*(?:async\s+)?(?:def|class|import|from)\b/.test(line)) return;
-        const identifiers = /\b[A-Za-z_]\w*\b/g;
-        let identifier;
-        while ((identifier = identifiers.exec(line)) !== null) {
-          const name = identifier[0];
-          const before = line.slice(0, identifier.index);
-          const after = line.slice(identifier.index + name.length);
-          if (declared.has(name) || /\.\s*$/.test(before) || /^\s*=/.test(after)) continue;
-          addFinding(index + 1, "Name", "Possibly undefined name: " + name, "This name is used but is not declared as a parameter, import, assignment, or known Python builtin.", { repair: "replace-undefined", symbol: name });
-        }
-      });
 
       const security = evaluateSecurityGate(maskedLines.join("\n"));
       security.findings.forEach((finding) => {
@@ -3469,8 +3755,12 @@
       function appendLine(text, kind) {
         const line = document.createElement("span");
         line.className = "fix-diff-line" + (kind ? " " + kind : "");
-        line.textContent = (kind === "removed" ? "− " : kind === "added" ? "+ " : "  ") + text;
+        line.textContent = (kind === "removed" ? "- " : kind === "added" ? "+ " : "  ") + text;
         diff.appendChild(line);
+      }
+      if (before === after) {
+        appendLine("No code changes proposed.", "");
+        return;
       }
       beforeLines.slice(0, prefix).forEach((line) => appendLine(line, ""));
       beforeLines.slice(prefix, beforeLines.length - suffix).forEach((line) => appendLine(line, "removed"));
@@ -3714,7 +4004,10 @@
           const position = lines[index].lastIndexOf(finding.token);
           if (position !== -1) lines[index] = lines[index].slice(0, position) + lines[index].slice(position + finding.token.length);
         } else if (finding.repair === "close-brackets") {
-          lines.push(finding.token);
+          const codeEnd = review.maskedLines[index].trimEnd().length;
+          lines[index] = lines[index].slice(0, codeEnd)
+            + finding.token
+            + lines[index].slice(codeEnd);
         } else if (finding.repair === "replace-secret") {
           const variable = finding.symbol.toUpperCase().replace(/-/g, "_");
           const replacement = currentLanguage === "javascript"
@@ -3798,8 +4091,6 @@
           lines[index] = lines[index].replace(/^[ \t]+/, "");
         } else if (finding.repair === "replace-zero-divisor") {
           lines[index] = lines[index].replace(/(\/{1,2}|%)\s*0+(?:\.0+)?\b/g, "$1 1");
-        } else if (finding.repair === "replace-undefined") {
-          lines[index] = lines[index].replace(new RegExp("\\b" + finding.symbol + "\\b", "g"), "0");
         } else if (finding.repair === "replace-secret") {
           const variable = finding.symbol.toUpperCase().replace(/-/g, "_");
           lines[index] = lines[index].replace(
@@ -3821,7 +4112,10 @@
           lines[index] = lines[index].replace(/\bpickle\.(loads?)\s*\(/g, "json.$1(");
           imports.add("json");
         } else if (finding.repair === "close-brackets") {
-          lines.push(finding.token);
+          const codeEnd = review.maskedLines[index].trimEnd().length;
+          lines[index] = lines[index].slice(0, codeEnd)
+            + finding.token
+            + lines[index].slice(codeEnd);
         } else if (finding.repair === "close-string") {
           lines[index] += finding.token;
         } else if (finding.repair === "remove-delimiter") {
@@ -3870,6 +4164,17 @@
     function getAgentFix() {
       const review = analyzeCode(sourceEditor.value);
       if (!review.findings.length) {
+        if (latestFindings.length) {
+          proposedFix = sourceEditor.value;
+          renderFixDiff(sourceEditor.value, proposedFix);
+          const validation = document.getElementById("fix-validation");
+          validation.textContent =
+            "No safe local repair is available for this finding. The source is unchanged; edit it manually.";
+          validation.classList.add("needs-review");
+          prepareFixReview(false);
+          openAgentDrawer("fix");
+          return;
+        }
         setIdleStatus("No errors · ready for docstrings", "is-good");
         return;
       }
@@ -3934,7 +4239,7 @@
 
     function updateGateSummary(passed, score) {
       const status = document.getElementById("security-gate-result");
-      status.textContent = passed ? "Passed" : "Blocked";
+      status.textContent = passed ? "Passed" : "Review required";
       status.classList.toggle("success-text", passed);
       status.classList.toggle("security-text", !passed);
       document.getElementById("security-gate-score").textContent = score === undefined || passed ? "100.0%" : score + "%";
@@ -3965,34 +4270,50 @@
       if (generateButton.disabled) return;
       const gate = evaluateSecurityGate(sourceEditor.value);
       const codeReview = analyzeCode(sourceEditor.value);
-      if (codeReview.findings.length) {
-        clearIdleCheck();
-        showAgentFindings(codeReview.findings);
-        if (!gate.passed) showSecurityBlock(gate.findings, gate.score);
-        return;
-      }
-      if (!gate.passed) {
-        showSecurityBlock(gate.findings, gate.score);
-        return;
-      }
+      let localFindings = codeReview.findings.slice();
+      gate.findings.forEach((finding) => {
+        const alreadyReported = localFindings.some((localFinding) =>
+          localFinding.category === "Security"
+          && localFinding.line === finding.line
+          && (localFinding.rule === finding.code || localFinding.repair === finding.code)
+        );
+        if (!alreadyReported) {
+          localFindings.push({
+            line: finding.line,
+            category: "Security",
+            title: finding.code + " · Unsafe operation",
+            explanation: finding.message,
+            repair: finding.code,
+            rule: finding.code
+          });
+        }
+      });
+      localFindings.sort((left, right) => left.line - right.line);
 
       clearIdleCheck();
       clearAgentPanels();
-      setIdleStatus("No errors · ready for docstrings", "is-good");
+      setIdleStatus(
+        localFindings.length
+          ? "Local issues detected · continuing safe analysis"
+          : "No errors · ready for docstrings",
+        localFindings.length ? "is-scanning" : "is-good"
+      );
       securityAlert.hidden = true;
-      updateGateSummary(true, gate.score);
+      updateGateSummary(gate.passed, gate.score);
       const languageName = languageInfo[currentLanguage].shortLabel;
+      const agentSource = sourceEditor.value;
+      const agentLanguage = currentLanguage;
       const phases = [
-        { progress: 13, message: 'Parsing ' + escapeHtml(languageName) + ' source <span class="terminal-blue">· syntax</span>', delay: 5000 },
-        { progress: 38, message: 'Building intermediate representation <span class="terminal-blue">· AST IR</span>', delay: 5000 },
-        { progress: 61, message: 'Generating documentation <span class="terminal-blue">· neurosymbolic engine</span>', delay: 5000 }
+        { progress: 13, message: 'Parsing ' + escapeHtml(languageName) + ' source <span class="terminal-blue">· syntax</span>', delay: 450 },
+        { progress: 38, message: 'Building intermediate representation <span class="terminal-blue">· AST IR</span>', delay: 450 },
+        { progress: 61, message: 'Generating documentation <span class="terminal-blue">· local Gemini agent</span>', delay: 450 }
       ];
       if (reviewerEnabled) {
-        phases.push({ progress: 78, message: 'Reviewing generated comments <span class="terminal-blue">· optional LLM reviewer</span>', delay: 5000 });
+        phases.push({ progress: 78, message: 'Reviewing generated comments <span class="terminal-blue">· optional LLM reviewer</span>', delay: 450 });
       }
       phases.push(
-        { progress: 90, message: 'Validating generated annotations <span class="terminal-blue">· static analysis</span>', delay: 5000 },
-        { progress: 100, message: '<span class="terminal-success">Pipeline complete</span> · ', delay: 5000 }
+        { progress: 90, message: 'Validating generated annotations <span class="terminal-blue">· static analysis</span>', delay: 450 },
+        { progress: 100, message: '<span class="terminal-success">Pipeline complete</span> · ', delay: 450 }
       );
       generateButton.disabled = true;
       generateButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.36-6.36-2.12 2.12M7.76 16.24l-2.12 2.12m12.72 0-2.12-2.12M7.76 7.76 5.64 5.64"/></svg> Generating…';
@@ -4002,6 +4323,10 @@
       document.getElementById("input-status").textContent = "Analyzing source…";
       document.getElementById("output-status").textContent = "Generating comments…";
       setProgress(0);
+      setTerminal("Connecting to the local Gemini agent…");
+      const agentRequest = requestLocalAgent("comments", agentSource, reviewerEnabled)
+        .then((result) => ({ result, error: null }))
+        .catch((error) => ({ result: null, error }));
 
       try {
         for (const phase of phases.slice(0, -1)) {
@@ -4010,15 +4335,40 @@
           setProgress(phase.progress);
         }
 
-        refreshPreview();
+        const outcome = await agentRequest;
+        let agentResult = outcome.result;
+        let agentError = outcome.error;
+        if (agentResult && (sourceEditor.value !== agentSource || currentLanguage !== agentLanguage)) {
+          agentResult = null;
+          agentError = new Error("Source changed during generation; local output was used instead.");
+          localFindings = [];
+        }
+        if (agentResult) {
+          displayAgentFeedback(agentResult, localFindings);
+          refreshPreview(undefined, agentResult, true);
+        } else {
+          displayAgentFeedback(null, localFindings);
+          refreshPreview(undefined, null, true);
+          if (reviewerEnabled) {
+            document.getElementById("reviewer-metric-state").textContent = "Unavailable";
+            document.getElementById("reviewer-metric-state").title = agentError.message;
+          }
+        }
         const annotationCount = annotationTotal;
         const totalLines = outputCode.split("\n").length;
         const annotationLabel = currentLanguage === "python" ? "docstring" : "comment block";
         const finalPhase = phases[phases.length - 1];
-        setTerminal(finalPhase.message + annotationCount + " " + annotationLabel + (annotationCount === 1 ? "" : "s") + " added · " + totalLines + " output lines");
+        const agentStatus = agentResult ? "Gemini output" : "local fallback";
+        const reviewerNote = agentResult && agentResult.reviewer_notes
+          ? " · Reviewer: " + escapeHtml(agentResult.reviewer_notes) : "";
+        setTerminal(finalPhase.message + annotationCount + " " + annotationLabel + (annotationCount === 1 ? "" : "s")
+          + " added · " + totalLines + " output lines · " + agentStatus + reviewerNote);
         setProgress(finalPhase.progress);
         document.getElementById("input-status").textContent = "Analysis complete";
-        document.getElementById("output-status").textContent = "Generation complete";
+        document.getElementById("output-status").textContent = agentResult
+          ? "Generation complete · local Gemini"
+          : "Generation complete · built-in fallback";
+        if (agentError) showToast("Using built-in local output. " + agentError.message);
         pipelineState.className = "pipeline-state complete";
         document.getElementById("pipeline-state-label").textContent = "Completed · 100%";
       } catch (error) {
@@ -4099,12 +4449,12 @@
       button.classList.remove("is-connected");
       button.classList.add("is-checking");
       label.textContent = "Checking local engine…";
-      button.title = "Checking http://localhost:8000/health. No source code is sent.";
+      button.title = "Checking http://127.0.0.1:8000/health. No source code is sent.";
       const started = performance.now();
       const controller = new AbortController();
       backendCheckTimer = window.setTimeout(() => controller.abort(), 2800);
       try {
-        const response = await fetch("http://localhost:8000/health", {
+        const response = await fetch("http://127.0.0.1:8000/health", {
           method: "GET",
           cache: "no-store",
           headers: { "Accept": "application/json" },
@@ -4112,19 +4462,19 @@
         });
         if (!response.ok) throw new Error("Health endpoint returned HTTP " + response.status);
         const health = await response.json();
-        if (!health || !["python-ast", "python_ast", "connected"].includes(String(health.engine || "").toLowerCase())) {
-          throw new Error("The endpoint did not identify a Python AST engine.");
+        if (!health || !["local-agent", "python-ast", "python_ast", "connected"].includes(String(health.engine || "").toLowerCase())) {
+          throw new Error("The endpoint did not identify a compatible local agent.");
         }
         const latency = Math.round(performance.now() - started);
         button.classList.add("is-connected");
-        label.textContent = "🟢 Python AST Engine Connected · " + latency + "ms";
-        button.title = "Connected to the Python AST engine at http://localhost:8000/health (" + latency + " ms).";
-        showToast("Local Python AST engine connected · " + latency + "ms");
+        label.textContent = "🟢 Local Agent Connected · " + latency + "ms";
+        button.title = "Connected to the local agent at http://127.0.0.1:8000/health (" + latency + " ms).";
+        showToast("Local agent connected · " + latency + "ms");
       } catch (error) {
         const simulatedLatency = 18 + Math.floor(Math.random() * 24);
         label.textContent = "⚡ Static Demo Mode · " + simulatedLatency + "ms simulated";
-        button.title = "No compatible Python AST health endpoint at http://localhost:8000/health. Static demo remains available; no source code was sent.";
-        showToast("Static demo mode · local Python engine unavailable");
+        button.title = "No compatible local agent at http://127.0.0.1:8000/health. Built-in generation remains available; no source code was sent.";
+        showToast("Built-in demo mode · local agent unavailable");
       } finally {
         window.clearTimeout(backendCheckTimer);
         button.classList.remove("is-checking");
@@ -4272,11 +4622,33 @@
     document.getElementById("confirm-fix-review").addEventListener("click", confirmFixReview);
     document.getElementById("apply-agent-fix").addEventListener("click", applyAgentFix);
     document.getElementById("close-agent-drawer").addEventListener("click", () => { agentDrawer.hidden = true; });
-    llmToggle.addEventListener("click", () => {
+    llmToggle.addEventListener("click", async () => {
       reviewerEnabled = !reviewerEnabled;
       llmToggle.setAttribute("aria-pressed", String(reviewerEnabled));
       document.getElementById("llm-toggle-label").textContent = reviewerEnabled ? "On" : "Off";
-      document.getElementById("reviewer-metric-state").textContent = reviewerEnabled ? "Active" : "Off";
+      const reviewerState = document.getElementById("reviewer-metric-state");
+      reviewerState.textContent = reviewerEnabled ? "Reviewing…" : "Off";
+      reviewerState.title = "";
+      if (!reviewerEnabled) return;
+
+      const source = sourceEditor.value;
+      const language = currentLanguage;
+      llmToggle.disabled = true;
+      try {
+        const result = await requestLocalAgent("review", source, true);
+        if (sourceEditor.value !== source || currentLanguage !== language) {
+          throw new Error("Source changed during review; retry with the current source.");
+        }
+        displayAgentFeedback(result);
+        if (result.reviewer_notes) showToast("LLM reviewer · " + result.reviewer_notes);
+        else showToast("LLM reviewer complete");
+      } catch (error) {
+        reviewerState.textContent = "Unavailable";
+        reviewerState.title = error.message;
+        showToast("LLM reviewer unavailable; it will retry during generation. " + error.message);
+      } finally {
+        llmToggle.disabled = false;
+      }
     });
     toggleButton.addEventListener("click", () => {
       onlyAdded = !onlyAdded;
@@ -4322,6 +4694,7 @@
     }
     applyTheme(savedTheme, false);
     loadPreset("math");
+    checkBackendStatus();
   </script>
 </body>
 </html>

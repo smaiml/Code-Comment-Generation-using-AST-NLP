@@ -154,13 +154,32 @@ The GUI contains Generator, Insights, ML Training, Security, and Logs workspaces
 
 ### Standalone web demo
 
-Open `web/index.html` directly, or serve the repository locally:
+The browser demo retains its built-in local comment and test generators. To serve it over HTTP without the Gemini backend:
 
 ```powershell
-python -m http.server 8000
+python -m http.server 5501 --directory web
 ```
 
-Then visit `http://localhost:8000/web/index.html`. This demo has no Python backend or API dependency.
+Then visit `http://127.0.0.1:5501/`.
+
+### Optional local Gemini agent
+
+The browser can call a local FastAPI service for Gemini-generated documentation, tests, security findings, and reviewer notes. When enabled, the reviewer makes a separate verification pass against the source's actual behavior, inputs, and outputs, and can report concrete correctness or edge-case concerns. The client's computed complexity remains authoritative. Keep `GEMINI_API_KEY` in the repository-root `.env` file; the key is read by the server and is never placed in browser code. Source sent to this endpoint is forwarded to the configured Gemini model.
+
+From the repository root, install the agent dependencies and start the backend:
+
+```powershell
+python -m pip install -r requirements-agent.txt
+python -m uvicorn agent_server:app --host 127.0.0.1 --port 8000 --reload
+```
+
+In a second VS Code terminal, serve the browser UI:
+
+```powershell
+python -m http.server 5501 --directory web
+```
+
+Open `http://127.0.0.1:5501/`. Alternatively, use VS Code Live Server on `web/index.html`. If the local agent is unavailable, the UI falls back to its built-in generators.
 
 ## CLI Reference
 
